@@ -3,6 +3,9 @@ from fastapi.responses import StreamingResponse, JSONResponse, FileResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 import os
 import logging
 from pathlib import Path
@@ -41,8 +44,14 @@ STRIPE_PRO_PRICE_ID = os.environ['STRIPE_PRO_PRICE_ID']
 STRIPE_PRO_PLUS_PRICE_ID = os.environ['STRIPE_PRO_PLUS_PRICE_ID']
 STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
 
+# Rate Limiting Setup
+limiter = Limiter(key_func=get_remote_address)
+
 # Create the main app
 app = FastAPI()
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 api_router = APIRouter(prefix="/api")
 
 # ============ AUTH UTILITIES ============
@@ -199,7 +208,8 @@ async def startup_event():
 
 # ============ AUTH ROUTES ============
 @api_router.post("/auth/register")
-async def register(user: UserRegister, response: Response):
+@limiter.limit("5/hour")  # Prevent bot account creation
+async def register(user: UserRegister, response: Response, request: Request):
     email_lower = user.email.lower()
     existing = await db.users.find_one({"email": email_lower})
     if existing:
@@ -252,6 +262,7 @@ async def register(user: UserRegister, response: Response):
     }
 
 @api_router.post("/auth/login")
+@limiter.limit("10/minute")  # Prevent brute force attacks
 async def login(user: UserLogin, request: Request, response: Response):
     email_lower = user.email.lower()
     
@@ -415,7 +426,8 @@ async def delete_resume(resume_id: str, current_user: dict = Depends(get_current
 
 # ============ AI SUGGESTION (Streaming) ============
 @api_router.post("/resumes/{resume_id}/ai-suggest")
-async def ai_suggest(resume_id: str, request: AISuggestionRequest, current_user: dict = Depends(get_current_user)):
+@limiter.limit("20/hour")  # Prevent AI abuse - 20 suggestions per hour
+async def ai_suggest(resume_id: str, request: AISuggestionRequest, current_user: dict = Depends(get_current_user), req: Request = None):
     resume = await db.resumes.find_one({"user_id": current_user["id"], "_id": ObjectId(resume_id)})
     if not resume:
         raise HTTPException(status_code=404, detail="Resume not found")
@@ -653,7 +665,8 @@ class HeadshotRequest(BaseModel):
     image_data: str  # base64 encoded image
 
 @api_router.post("/generate-headshot")
-async def generate_headshot(request: HeadshotRequest, current_user: dict = Depends(get_current_user)):
+@limiter.limit("10/hour")  # Limit headshot generation - resource intensive
+async def generate_headshot(request: HeadshotRequest, current_user: dict = Depends(get_current_user), req: Request = None):
     """Generate professional headshot from selfie using Gemini Nano Banana"""
     try:
         chat = LlmChat(
@@ -695,7 +708,8 @@ class JobAdRequest(BaseModel):
     resume_id: str
 
 @api_router.post("/generate-from-job-ad")
-async def generate_from_job_ad(request: JobAdRequest, current_user: dict = Depends(get_current_user)):
+@limiter.limit("15/hour")  # Limit job ad generation
+async def generate_from_job_ad(request: JobAdRequest, current_user: dict = Depends(get_current_user), req: Request = None):
     """Generate tailored resume and cover letter from job description"""
     # Get user's resume
     resume = await db.resumes.find_one({"user_id": current_user["id"], "_id": ObjectId(request.resume_id)}, {"_id": 0})
@@ -987,9 +1001,16 @@ async def get_subscription_status(current_user: dict = Depends(get_current_user)
 # Include router
 app.include_router(api_router)
 
+# CORS Configuration
+cors_origins = os.environ.get('CORS_ORIGINS', '*')
+if cors_origins == '*':
+    allowed_origins = ["*"]
+else:
+    allowed_origins = [origin.strip() for origin in cors_origins.split(',')]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[os.environ.get('FRONTEND_URL', 'http://localhost:3000')],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
