@@ -68,13 +68,13 @@ export const Register = () => {
   return (
     <div className="min-h-screen flex items-center justify-center p-6" style={{ backgroundColor: '#F8FAFC' }}>
       <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="flex items-center justify-center gap-2 mb-8">
+        {/* Logo - Now Clickable */}
+        <Link to="/" className="flex items-center justify-center gap-2 mb-8 hover:opacity-80 transition-opacity">
           <FileText size={40} weight="bold" style={{ color: '#001F3F' }} />
           <span className="text-3xl font-semibold" style={{ fontFamily: 'Outfit', color: '#001F3F' }}>
             ShortlistPro.cv
           </span>
-        </div>
+        </Link>
 
         {/* Card */}
         <div className="card">
