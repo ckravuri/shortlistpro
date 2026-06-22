@@ -13,6 +13,7 @@ import HeadshotGenerator from "./pages/HeadshotGenerator";
 import JobAdGenerator from "./pages/JobAdGenerator";
 import AdminDashboard from "./pages/AdminDashboard";
 import Pricing from "./pages/Pricing";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/pricing" element={<Pricing />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route
               path="/dashboard"
               element={

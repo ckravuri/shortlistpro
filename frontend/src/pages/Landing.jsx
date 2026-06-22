@@ -157,9 +157,27 @@ export const Landing = () => {
         style={{ borderColor: '#E2E8F0', backgroundColor: '#FFFFFF' }}
       >
         <div className="max-w-7xl mx-auto px-6 py-8">
-          <p className="body-text-sm text-center">
-            © 2026 ShortlistPro.cv - Professional Resume Builder
-          </p>
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <p className="body-text-sm">
+              © 2026 ShortlistPro.cv - Professional Resume Builder
+            </p>
+            <div className="flex gap-6">
+              <Link 
+                to="/privacy" 
+                className="body-text-sm hover:opacity-70 transition-opacity"
+                style={{ color: '#001F3F' }}
+              >
+                Privacy Policy
+              </Link>
+              <a 
+                href="mailto:support@shortlistpro.cv" 
+                className="body-text-sm hover:opacity-70 transition-opacity"
+                style={{ color: '#001F3F' }}
+              >
+                Contact
+              </a>
+            </div>
+          </div>
         </div>
       </footer>
     </div>
