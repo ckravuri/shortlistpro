@@ -16,7 +16,7 @@ export const Register = () => {
     name: '',
     email: '',
     password: '',
-    region: 'US',
+    region: 'US', // Default to US, user can change in settings later
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -102,7 +102,7 @@ export const Register = () => {
               />
             </div>
 
-            <div className="mb-4">
+            <div className="mb-6">
               <label htmlFor="password" className="input-label">
                 Password
               </label>
@@ -116,29 +116,11 @@ export const Register = () => {
                 onChange={handleChange}
                 required
                 placeholder="••••••••"
-                minLength={6}
+                minLength={8}
               />
-            </div>
-
-            <div className="mb-6">
-              <label htmlFor="region" className="input-label">
-                Target Job Market
-              </label>
-              <select
-                id="region"
-                name="region"
-                data-testid="register-region-select"
-                className="input-field"
-                value={formData.region}
-                onChange={handleChange}
-                style={{ cursor: 'pointer' }}
-              >
-                {REGIONS.map((region) => (
-                  <option key={region.value} value={region.value}>
-                    {region.label}
-                  </option>
-                ))}
-              </select>
+              <p className="text-xs mt-1" style={{ color: '#708090' }}>
+                Minimum 8 characters
+              </p>
             </div>
 
             <button
