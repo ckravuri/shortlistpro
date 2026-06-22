@@ -1,0 +1,217 @@
+.App {
+  min-height: 100vh;
+}
+
+/* Design System Styles - ShortlistPro.cv */
+
+/* Remove default center alignment */
+body, .App {
+  text-align: left;
+}
+
+/* Typography */
+.heading-hero {
+  font-family: 'Outfit', sans-serif;
+  font-size: 3rem;
+  line-height: 1.1;
+  font-weight: 500;
+  color: #001F3F;
+  letter-spacing: -0.02em;
+}
+
+@media (min-width: 640px) {
+  .heading-hero {
+    font-size: 3.75rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .heading-hero {
+    font-size: 4.5rem;
+  }
+}
+
+.heading-section {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.5rem;
+  line-height: 1.2;
+  font-weight: 500;
+  color: #001F3F;
+  letter-spacing: -0.01em;
+}
+
+@media (min-width: 640px) {
+  .heading-section {
+    font-size: 1.875rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .heading-section {
+    font-size: 2.25rem;
+  }
+}
+
+.body-text {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #708090;
+}
+
+.body-text-sm {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: #708090;
+}
+
+/* Buttons */
+.btn-primary {
+  background-color: #50C878;
+  color: #001F3F;
+  font-weight: 500;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.125rem;
+  transition: background-color 0.2s ease-in-out;
+  border: none;
+  cursor: pointer;
+  font-family: 'IBM Plex Sans', sans-serif;
+}
+
+.btn-primary:hover {
+  background-color: #40A860;
+}
+
+.btn-primary:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #001F3F;
+}
+
+.btn-secondary {
+  background-color: transparent;
+  border: 1px solid #708090;
+  color: #001F3F;
+  font-weight: 500;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.125rem;
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+  cursor: pointer;
+  font-family: 'IBM Plex Sans', sans-serif;
+}
+
+.btn-secondary:hover {
+  background-color: #F8FAFC;
+}
+
+.btn-secondary:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #001F3F;
+}
+
+/* Cards */
+.card {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 0.125rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.2s ease-in-out;
+}
+
+.card:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Inputs */
+.input-field {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 0.125rem;
+  padding: 0.5rem 1rem;
+  color: #001F3F;
+  width: 100%;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 1rem;
+  transition: border-color 0.2s ease-in-out;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: #001F3F;
+  box-shadow: 0 0 0 1px #001F3F;
+}
+
+.input-field::placeholder {
+  color: #708090;
+  opacity: 0.6;
+}
+
+/* Labels */
+.input-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+  color: #708090;
+  margin-bottom: 0.5rem;
+  display: block;
+  font-family: 'IBM Plex Sans', sans-serif;
+}
+
+/* ATS Score Circle */
+.ats-score-circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  font-weight: 700;
+  font-size: 1.5rem;
+  height: 6rem;
+  width: 6rem;
+}
+
+.ats-excellent {
+  border: 4px solid #50C878;
+  color: #50C878;
+}
+
+.ats-warning {
+  border: 4px solid #F59E0B;
+  color: #F59E0B;
+}
+
+.ats-poor {
+  border: 4px solid #EF4444;
+  color: #EF4444;
+}
+
+/* AI Guardrail Alert */
+.ai-guardrail-alert {
+  background-color: #FFFBEB;
+  border-left: 4px solid #F59E0B;
+  padding: 1rem;
+  color: #B45309;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin: 1rem 0;
+}
+
+/* Grid Layout */
+.grid-borders {
+  border: 1px solid #E2E8F0;
+}
+
+/* Transitions */
+.smooth-transition {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Remove any universal transitions that break transforms */
+* {
+  transition: none;
+}
+
+button, a, input, select, textarea {
+  transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out, color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}

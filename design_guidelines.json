@@ -1,0 +1,97 @@
+{
+  "theme": "Light",
+  "archetype": "Authority SaaS / Swiss Brutalism Hybrid",
+  "colors": {
+    "primary": "#001F3F",
+    "accent": "#50C878",
+    "neutral": "#708090",
+    "background": "#F8FAFC",
+    "surface": "#FFFFFF",
+    "text_primary": "#001F3F",
+    "text_secondary": "#708090",
+    "success": "#50C878",
+    "warning": "#F59E0B",
+    "error": "#EF4444",
+    "border": "#E2E8F0"
+  },
+  "typography": {
+    "heading_font": "Outfit",
+    "body_font": "IBM Plex Sans",
+    "heading_styles": {
+      "h1": "text-4xl sm:text-5xl lg:text-6xl tracking-tighter font-medium text-[#001F3F]",
+      "h2": "text-2xl sm:text-3xl lg:text-4xl tracking-tight font-medium text-[#001F3F]",
+      "h3": "text-xl sm:text-2xl tracking-tight font-medium text-[#001F3F]"
+    },
+    "body_styles": {
+      "base": "text-base leading-relaxed text-[#708090]",
+      "small": "text-sm leading-relaxed text-[#708090]",
+      "label": "text-xs uppercase tracking-[0.2em] font-semibold text-[#708090]"
+    }
+  },
+  "spacing_and_layout": {
+    "container_padding": "p-6 md:p-12",
+    "gap_strategy": "gap-8 md:gap-12",
+    "border_radius": "rounded-sm",
+    "surface_strategy": "Grid Borders (Technical Look): 1px solid borders using #E2E8F0, flat backgrounds, no excessive shadows. Focus on precision.",
+    "alignment": "Single-column primary view. Content heavily left-aligned for data parsing clarity. Modified F-pattern scanning layout."
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-[#50C878] text-[#001F3F] font-medium px-6 py-3 rounded-sm hover:bg-[#40A860] transition-colors focus:ring-2 focus:ring-[#001F3F] focus:outline-none",
+      "secondary": "bg-transparent border border-[#708090] text-[#001F3F] font-medium px-6 py-3 rounded-sm hover:bg-[#F8FAFC] transition-colors focus:ring-2 focus:ring-[#001F3F] focus:outline-none"
+    },
+    "cards": {
+      "style": "bg-white border border-[#E2E8F0] rounded-sm p-6 shadow-sm hover:shadow-md transition-shadow"
+    },
+    "inputs": {
+      "style": "bg-white border border-[#E2E8F0] rounded-sm px-4 py-2 text-[#001F3F] focus:border-[#001F3F] focus:ring-1 focus:ring-[#001F3F] outline-none w-full"
+    },
+    "ai_guardrail": {
+      "style": "bg-[#FFFBEB] border-l-4 border-[#F59E0B] p-4 text-[#B45309] text-sm font-medium"
+    },
+    "ats_score": {
+      "style": "flex items-center justify-center rounded-full border-4 font-bold text-2xl h-24 w-24",
+      "excellent": "border-[#50C878] text-[#50C878]",
+      "warning": "border-[#F59E0B] text-[#F59E0B]",
+      "poor": "border-[#EF4444] text-[#EF4444]"
+    }
+  },
+  "interaction_and_motion": {
+    "hover_states": "Crisp color shifts, no slow fades. Text color explicitly defined on hover.",
+    "focus_states": "High contrast ring using Deep Navy (#001F3F) to ensure accessibility.",
+    "transitions": "transition-all duration-200 ease-in-out"
+  },
+  "media": {
+    "image_urls": [
+      {
+        "category": "Hero / Background",
+        "url": "https://images.pexels.com/photos/1313534/pexels-photo-1313534.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Modern glass office building reflecting authority and structure."
+      },
+      {
+        "category": "Headshot Generator Preview",
+        "url": "https://images.unsplash.com/photo-1600878459138-e1123b37cb30?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NzB8MHwxfHNlYXJjaHwzfHxwcm9mZXNzaW9uYWwlMjBjb3Jwb3JhdGUlMjBoZWFkc2hvdHxlbnwwfHx8fDE3ODIxMDQwNzF8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Professional corporate headshot for demonstrating the AI generation feature."
+      },
+      {
+        "category": "Resume / ATS Concept",
+        "url": "https://images.pexels.com/photos/7662061/pexels-photo-7662061.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Close-up of hands typing, representing data entry and resume building."
+      }
+    ]
+  },
+  "testing_requirements": {
+    "data_testid": "MANDATORY on all interactive and key informational elements. Use kebab-case, role-based naming (e.g., data-testid='ats-score-display', data-testid='generate-headshot-btn')."
+  },
+  "instructions_to_main_agent": [
+    "Use Phosphor Icons (@phosphor-icons/react) for a dense, professional look.",
+    "Stick to a single-column, career-grade UI for the resume builder layout to ensure a parse-safe styling focus. Emphasize data clarity over visual flair.",
+    "Enforce the 'No-Fabrication AI Guardrail' visually with the warning colors provided and display clear 'Add metric here' flags when data is missing.",
+    "Build the dashboard using a Grid Borders pattern: sharp 1px borders (#E2E8F0), minimal rounded corners (rounded-sm max), and flat backgrounds.",
+    "Never use generic AI Purple gradients. Adhere strictly to the Deep Navy, Emerald Green, and Slate Gray palette.",
+    "Do NOT use raw HTML input type='date' or generic select tags. Use Shadcn components heavily customized to match the sharp, flat aesthetic.",
+    "Apply pure HTML + Tailwind for marketing/landing areas, but utilize Shadcn for internal builder logic.",
+    "Make sure all interactable elements (buttons, links, forms) include a data-testid attribute.",
+    "Use JavaScript exclusively. Do not use TypeScript syntax (.js and .jsx only)."
+  ]
+}

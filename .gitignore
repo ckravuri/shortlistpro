@@ -1,0 +1,52 @@
+# Environment files with secrets
+.env
+*.env
+backend/.env
+frontend/.env
+
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+backend/venv/
+
+# Build outputs
+build/
+dist/
+*.log
+frontend/build/
+
+# Database
+*.sqlite
+*.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test and backup files
+test_reports/
+*.backup
+server_backup.py
+
+# Memory and automation
+memory/
+.emergent/
+
+# Yarn
+yarn.lock
+frontend/yarn.lock
+frontend/node_modules/.cache/default-development/0.pack
+.env.*
+credentials.json
+*.pem
+*.key
+.credentials
