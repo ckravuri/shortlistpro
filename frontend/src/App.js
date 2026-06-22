@@ -1,6 +1,6 @@
 import React from "react";
 import "@/App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import Landing from "./pages/Landing";
@@ -14,6 +14,22 @@ import JobAdGenerator from "./pages/JobAdGenerator";
 import AdminDashboard from "./pages/AdminDashboard";
 import Pricing from "./pages/Pricing";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import AuthCallback from "./components/AuthCallback";
+
+// Wrapper to handle OAuth callback
+function DashboardRoute() {
+  const location = useLocation();
+  // If URL has session_id, show AuthCallback
+  if (location.hash?.includes('session_id=')) {
+    return <AuthCallback />;
+  }
+  // Otherwise show protected dashboard
+  return (
+    <ProtectedRoute>
+      <Dashboard />
+    </ProtectedRoute>
+  );
+}
 
 function App() {
   return (
@@ -28,11 +44,7 @@ function App() {
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route
               path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
+              element={<DashboardRoute />}
             />
             <Route
               path="/resume/:resumeId"

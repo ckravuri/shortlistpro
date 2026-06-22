@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { FileText, ArrowLeft } from '@phosphor-icons/react';
+import { FileText, ArrowLeft, GoogleLogo } from '@phosphor-icons/react';
 
 export const Login = () => {
   const [email, setEmail] = useState('');
@@ -23,6 +23,12 @@ export const Login = () => {
       setError(result.error);
     }
     setLoading(false);
+  };
+
+  const handleGoogleSignIn = () => {
+    // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
+    const redirectUrl = window.location.origin + '/dashboard';
+    window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
   };
 
   return (
@@ -93,6 +99,41 @@ export const Login = () => {
               {loading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
+
+          {/* Divider */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t" style={{ borderColor: '#E2E8F0' }}></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2" style={{ backgroundColor: '#FFFFFF', color: '#708090' }}>
+                Or continue with
+              </span>
+            </div>
+          </div>
+
+          {/* Google Sign-In Button */}
+          <button
+            onClick={handleGoogleSignIn}
+            type="button"
+            className="w-full flex items-center justify-center gap-3 px-4 py-3 border rounded-lg font-medium transition-all"
+            style={{
+              borderColor: '#E2E8F0',
+              backgroundColor: '#FFFFFF',
+              color: '#001F3F'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#F8FAFC';
+              e.currentTarget.style.borderColor = '#001F3F';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#FFFFFF';
+              e.currentTarget.style.borderColor = '#E2E8F0';
+            }}
+          >
+            <GoogleLogo size={20} weight="bold" />
+            Continue with Google
+          </button>
 
           <div className="mt-6 text-center">
             <p className="body-text-sm">
