@@ -1,14 +1,19 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { FileText, ArrowLeft, GoogleLogo } from '@phosphor-icons/react';
+import { GoogleLogin } from '@react-oauth/google';
+import { FileText, ArrowLeft } from '@phosphor-icons/react';
+import axios from 'axios';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND_URL}/api`;
 
 export const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, setUser } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -25,10 +30,23 @@ export const Login = () => {
     setLoading(false);
   };
 
-  const handleGoogleSignIn = () => {
-    // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
-    const redirectUrl = window.location.origin + '/dashboard';
-    window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      const { data } = await axios.post(
+        `${API}/auth/google`,
+        { credential: credentialResponse.credential },
+        { withCredentials: true }
+      );
+      setUser(data);
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('Google login error:', error);
+      setError('Google sign-in failed. Please try again.');
+    }
+  };
+
+  const handleGoogleError = () => {
+    setError('Google sign-in failed. Please try again.');
   };
 
   return (
@@ -113,27 +131,17 @@ export const Login = () => {
           </div>
 
           {/* Google Sign-In Button */}
-          <button
-            onClick={handleGoogleSignIn}
-            type="button"
-            className="w-full flex items-center justify-center gap-3 px-4 py-3 border rounded-lg font-medium transition-all"
-            style={{
-              borderColor: '#E2E8F0',
-              backgroundColor: '#FFFFFF',
-              color: '#001F3F'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#F8FAFC';
-              e.currentTarget.style.borderColor = '#001F3F';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#FFFFFF';
-              e.currentTarget.style.borderColor = '#E2E8F0';
-            }}
-          >
-            <GoogleLogo size={20} weight="bold" />
-            Continue with Google
-          </button>
+          <div className="flex justify-center">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
+              theme="outline"
+              size="large"
+              text="continue_with"
+              shape="rectangular"
+              width="100%"
+            />
+          </div>
 
           <div className="mt-6 text-center">
             <p className="body-text-sm">

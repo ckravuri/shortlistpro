@@ -44,6 +44,10 @@ STRIPE_PRO_PRICE_ID = os.environ['STRIPE_PRO_PRICE_ID']
 STRIPE_PRO_PLUS_PRICE_ID = os.environ['STRIPE_PRO_PLUS_PRICE_ID']
 STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
 
+# Google OAuth Configuration
+GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
+GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
+
 # Rate Limiting Setup
 limiter = Limiter(key_func=get_remote_address)
 
@@ -331,7 +335,7 @@ async def login(user: UserLogin, request: Request, response: Response):
     }
 
 @api_router.get("/auth/me")
-async def get_me(request: Request, current_user: dict = Depends(get_current_user_with_session)):
+async def get_me(request: Request, current_user: dict = Depends(get_current_user)):
     return current_user
 
 @api_router.post("/auth/logout")
@@ -342,31 +346,31 @@ async def logout(response: Response):
     return {"message": "Logged out successfully"}
 
 # ============ GOOGLE OAUTH ROUTES ============
-@api_router.post("/auth/google-session")
-async def google_session(request: Request, response: Response):
-    """Exchange Google OAuth session_id for user data and create session"""
-    data = await request.json()
-    session_id = data.get("session_id")
+@api_router.post("/auth/google")
+async def google_auth(request: Request, response: Response):
+    """Verify Google ID token and create/login user"""
+    from google.oauth2 import id_token
+    from google.auth.transport import requests as google_requests
     
-    if not session_id:
-        raise HTTPException(status_code=400, detail="session_id required")
+    data = await request.json()
+    token = data.get("credential")
+    
+    if not token:
+        raise HTTPException(status_code=400, detail="Google credential required")
     
     try:
-        # Call Emergent Auth to get user data
-        import aiohttp
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                "https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data",
-                headers={"X-Session-ID": session_id}
-            ) as resp:
-                if resp.status != 200:
-                    raise HTTPException(status_code=401, detail="Invalid session_id")
-                user_data = await resp.json()
+        # Verify the Google ID token
+        idinfo = id_token.verify_oauth2_token(
+            token, 
+            google_requests.Request(), 
+            GOOGLE_CLIENT_ID
+        )
         
-        email = user_data["email"].lower()
-        name = user_data["name"]
-        picture = user_data.get("picture", "")
-        session_token = user_data["session_token"]
+        # Extract user info from token
+        email = idinfo['email'].lower()
+        name = idinfo.get('name', '')
+        picture = idinfo.get('picture', '')
+        google_id = idinfo['sub']
         
         # Find or create user
         user = await db.users.find_one({"email": email}, {"_id": 0})
@@ -380,7 +384,8 @@ async def google_session(request: Request, response: Response):
                 "email": email,
                 "name": name,
                 "picture": picture,
-                "region": "US",  # Default region
+                "google_id": google_id,
+                "region": "US",
                 "subscription_tier": "free",
                 "stripe_customer_id": None,
                 "ai_suggestions_used": 0,
@@ -391,27 +396,40 @@ async def google_session(request: Request, response: Response):
             await db.users.insert_one(new_user)
             user = {k: v for k, v in new_user.items() if k != "_id"}
         else:
-            # Update existing user's picture if changed
+            # Update existing user's picture and google_id if changed
+            update_fields = {}
             if picture and user.get("picture") != picture:
+                update_fields["picture"] = picture
+            if not user.get("google_id"):
+                update_fields["google_id"] = google_id
+            if not user.get("auth_provider"):
+                update_fields["auth_provider"] = "google"
+            
+            if update_fields:
                 await db.users.update_one(
                     {"email": email},
-                    {"$set": {"picture": picture, "auth_provider": "google"}}
+                    {"$set": update_fields}
                 )
-                user["picture"] = picture
+                user.update(update_fields)
         
-        # Store session in database
-        session_doc = {
-            "user_id": user["id"],
-            "session_token": session_token,
-            "expires_at": (datetime.now(timezone.utc) + timedelta(days=7)).isoformat(),
-            "created_at": datetime.now(timezone.utc).isoformat()
-        }
-        await db.user_sessions.insert_one(session_doc)
+        # Create JWT tokens (reuse existing auth system)
+        user_id = user["id"]
+        access_token = create_access_token(user_id, email)
+        refresh_token = create_refresh_token(user_id)
         
-        # Set session cookie
+        # Set cookies
         response.set_cookie(
-            key="session_token",
-            value=session_token,
+            key="access_token",
+            value=access_token,
+            httponly=True,
+            secure=True,
+            samesite="none",
+            max_age=900,  # 15 minutes
+            path="/"
+        )
+        response.set_cookie(
+            key="refresh_token",
+            value=refresh_token,
             httponly=True,
             secure=True,
             samesite="none",
@@ -419,7 +437,7 @@ async def google_session(request: Request, response: Response):
             path="/"
         )
         
-        # Return user data (exclude sensitive fields)
+        # Return user data
         return {
             "id": user["id"],
             "email": user["email"],
@@ -430,38 +448,13 @@ async def google_session(request: Request, response: Response):
             "role": user["role"]
         }
         
+    except ValueError as e:
+        # Invalid token
+        logging.error(f"Google token verification failed: {str(e)}")
+        raise HTTPException(status_code=401, detail="Invalid Google token")
     except Exception as e:
         logging.error(f"Google OAuth error: {str(e)}")
         raise HTTPException(status_code=500, detail="Authentication failed")
-
-# Update get_current_user to support session_token
-async def get_current_user_with_session(request: Request) -> dict:
-    """Support both JWT tokens and Google OAuth session tokens"""
-    # Try session_token cookie first (Google OAuth)
-    session_token = request.cookies.get("session_token")
-    if session_token:
-        session = await db.user_sessions.find_one({"session_token": session_token}, {"_id": 0})
-        if session:
-            # Check if expired
-            expires_at = session["expires_at"]
-            if isinstance(expires_at, str):
-                expires_at = datetime.fromisoformat(expires_at)
-            if expires_at.tzinfo is None:
-                expires_at = expires_at.replace(tzinfo=timezone.utc)
-            
-            if expires_at < datetime.now(timezone.utc):
-                raise HTTPException(status_code=401, detail="Session expired")
-            
-            # Get user
-            user = await db.users.find_one({"id": session["user_id"]}, {"_id": 0})
-            if not user:
-                raise HTTPException(status_code=401, detail="User not found")
-            
-            user.pop("password_hash", None)
-            return user
-    
-    # Fallback to JWT token (email/password auth)
-    return await get_current_user(request)
 
 # ============ RESUME ROUTES ============
 @api_router.post("/resumes")
