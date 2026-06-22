@@ -36,7 +36,7 @@
     "@tanstack/react-query": "5.56.2",
     "axios": "1.16.0",
     "class-variance-authority": "0.7.1",
-    "serve": "^14.2.3",
+    "express": "^4.18.2",
     "clsx": "2.1.1",
     "cmdk": "1.1.1",
     "cra-template": "1.2.0",
@@ -68,7 +68,7 @@
     "start": "craco start",
     "build": "craco build",
     "test": "craco test",
-    "serve": "serve -s build -l 8080"
+    "serve": "node server.js"
   },
   "browserslist": {
     "production": [
