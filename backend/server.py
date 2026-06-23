@@ -96,11 +96,14 @@ async def get_current_user(request: Request) -> dict:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
         if payload.get("type") != "access":
             raise HTTPException(status_code=401, detail="Invalid token type")
-        user = await db.users.find_one({"_id": ObjectId(payload["sub"])})
+        
+        # CRITICAL FIX: Use custom 'id' field, NOT '_id' with ObjectId
+        user_id = payload["sub"]
+        user = await db.users.find_one({"id": user_id}, {"_id": 0})
+        
         if not user:
             raise HTTPException(status_code=401, detail="User not found")
-        user["_id"] = str(user["_id"])
-        user["id"] = user["_id"]  # Add id field for consistency
+        
         user.pop("password_hash", None)
         return user
     except jwt.ExpiredSignatureError:
