@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { FileText, ArrowLeft, Sparkle, Download } from '@phosphor-icons/react';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
@@ -10,6 +10,7 @@ const API = `${BACKEND_URL}/api`;
 export const CoverLetterGenerator = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   
   const [formData, setFormData] = useState({
     fullName: user?.name || '',
@@ -23,6 +24,13 @@ export const CoverLetterGenerator = () => {
   const [coverLetter, setCoverLetter] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Pre-fill with example if navigated from templates
+  useEffect(() => {
+    if (location.state?.example) {
+      setCoverLetter(location.state.example);
+    }
+  }, [location]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
