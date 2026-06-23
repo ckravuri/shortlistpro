@@ -53,12 +53,6 @@ export const ResumeUpload = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const tier = user?.subscription_tier || 'free';
-    if (tier === 'free') {
-      setError('PDF to Word conversion is available for Pro and Pro+ users only. Please upgrade your plan.');
-      return;
-    }
-
     const formData = new FormData();
     formData.append('file', file);
 
@@ -95,12 +89,6 @@ export const ResumeUpload = () => {
   const handleWordToPdf = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    const tier = user?.subscription_tier || 'free';
-    if (tier === 'free') {
-      setError('Word to PDF conversion is available for Pro and Pro+ users only. Please upgrade your plan.');
-      return;
-    }
 
     const formData = new FormData();
     formData.append('file', file);

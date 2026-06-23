@@ -79,10 +79,15 @@ export const Dashboard = () => {
   const handleDeleteResume = async (resumeId) => {
     if (!window.confirm('Are you sure you want to delete this resume?')) return;
     try {
-      await axios.delete(`${API}/resumes/${resumeId}`, { withCredentials: true });
+      await fetch(`${API}/resumes/${resumeId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      // Remove from list immediately
       setResumes(resumes.filter((r) => r.id !== resumeId));
     } catch (error) {
       console.error('Error deleting resume:', error);
+      alert('Failed to delete resume');
     }
   };
 
