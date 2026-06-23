@@ -183,35 +183,44 @@ async def startup_event():
     
     if existing is None:
         hashed = hash_password(admin_password)
+        admin_id = str(uuid.uuid4())
         await db.users.insert_one({
+            "id": admin_id,
             "email": admin_email,
             "password_hash": hashed,
             "name": "Admin",
             "region": "US",
             "role": "admin",
+            "subscription_tier": "pro+",
             "created_at": datetime.now(timezone.utc).isoformat()
         })
         logger.info(f"Admin user created: {admin_email}")
     elif not verify_password(admin_password, existing["password_hash"]):
+        # Update password and ensure id field exists
+        update_doc = {"password_hash": hash_password(admin_password)}
+        if "id" not in existing:
+            update_doc["id"] = str(uuid.uuid4())
+        if "subscription_tier" not in existing:
+            update_doc["subscription_tier"] = "pro+"
         await db.users.update_one(
             {"email": admin_email},
-            {"$set": {"password_hash": hash_password(admin_password)}}
+            {"$set": update_doc}
         )
         logger.info("Admin password updated")
     
     # Write test credentials
     Path("/app/memory").mkdir(exist_ok=True)
     with open("/app/memory/test_credentials.md", "w") as f:
-        f.write(f"# Test Credentials\n\n")
-        f.write(f"## Admin Account\n")
+        f.write("# Test Credentials\n\n")
+        f.write("## Admin Account\n")
         f.write(f"- Email: {admin_email}\n")
         f.write(f"- Password: {admin_password}\n")
-        f.write(f"- Role: admin\n\n")
-        f.write(f"## Auth Endpoints\n")
-        f.write(f"- POST /api/auth/register\n")
-        f.write(f"- POST /api/auth/login\n")
-        f.write(f"- GET /api/auth/me\n")
-        f.write(f"- POST /api/auth/logout\n")
+        f.write("- Role: admin\n\n")
+        f.write("## Auth Endpoints\n")
+        f.write("- POST /api/auth/register\n")
+        f.write("- POST /api/auth/login\n")
+        f.write("- GET /api/auth/me\n")
+        f.write("- POST /api/auth/logout\n")
 
 # ============ AUTH ROUTES ============
 @api_router.post("/auth/register")
@@ -223,7 +232,9 @@ async def register(user: UserRegister, response: Response, request: Request):
         raise HTTPException(status_code=400, detail="Email already registered")
     
     hashed = hash_password(user.password)
+    user_id = str(uuid.uuid4())
     user_doc = {
+        "id": user_id,
         "email": email_lower,
         "password_hash": hashed,
         "name": user.name,
@@ -234,8 +245,7 @@ async def register(user: UserRegister, response: Response, request: Request):
         "headshot_url": None,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
-    result = await db.users.insert_one(user_doc)
-    user_id = str(result.inserted_id)
+    await db.users.insert_one(user_doc)
     
     access_token = create_access_token(user_id, email_lower)
     refresh_token = create_refresh_token(user_id)
@@ -306,7 +316,15 @@ async def login(user: UserLogin, request: Request, response: Response):
     # Clear failed attempts
     await db.login_attempts.delete_one({"identifier": identifier})
     
-    user_id = str(user_doc["_id"])
+    # Get or create custom ID
+    user_id = user_doc.get("id")
+    if not user_id:
+        user_id = str(uuid.uuid4())
+        await db.users.update_one(
+            {"_id": user_doc["_id"]},
+            {"$set": {"id": user_id}}
+        )
+    
     access_token = create_access_token(user_id, email_lower)
     refresh_token = create_refresh_token(user_id)
     
@@ -779,15 +797,47 @@ async def delete_star_entry(entry_id: str, current_user: dict = Depends(get_curr
         raise HTTPException(status_code=404, detail="Entry not found")
     return {"message": "Entry deleted successfully"}
 
+# ============ AI USAGE TRACKING ============
+async def track_ai_usage(user_id: str, feature: str):
+    """Track AI feature usage for billing and limits"""
+    await db.ai_usage.insert_one({
+        "user_id": user_id,
+        "feature": feature,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+
+async def check_ai_limits(user_id: str, tier: str) -> bool:
+    """Check if user has exceeded AI usage limits for their tier"""
+    limits = TIER_LIMITS.get(tier, TIER_LIMITS["free"])
+    max_ai = limits["max_ai_suggestions"]
+    
+    # Unlimited for paid tiers
+    if max_ai == -1:
+        return True
+    
+    # Count usage this month
+    first_day = datetime.now(timezone.utc).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    usage_count = await db.ai_usage.count_documents({
+        "user_id": user_id,
+        "created_at": {"$gte": first_day.isoformat()}
+    })
+    
+    return usage_count < max_ai
+
 # ============ AI HEADSHOT GENERATOR ============
 class HeadshotRequest(BaseModel):
     image_data: str  # base64 encoded image
 
 @api_router.post("/generate-headshot")
 @limiter.limit("10/hour")  # Limit headshot generation - resource intensive
-async def generate_headshot(request: HeadshotRequest, current_user: dict = Depends(get_current_user), req: Request = None):
+async def generate_headshot(request: Request, headshot_req: HeadshotRequest, current_user: dict = Depends(get_current_user)):
     """Generate professional headshot from selfie using Gemini Nano Banana"""
     try:
+        # Check AI limits
+        tier = current_user.get("subscription_tier", "free")
+        if not await check_ai_limits(current_user["id"], tier):
+            raise HTTPException(status_code=403, detail="AI usage limit reached. Please upgrade your plan.")
+        
         chat = LlmChat(
             api_key=os.environ["EMERGENT_LLM_KEY"],
             session_id=f"headshot_{current_user['id']}",
@@ -796,7 +846,7 @@ async def generate_headshot(request: HeadshotRequest, current_user: dict = Depen
         chat.with_model("gemini", "gemini-3.1-flash-image-preview").with_params(modalities=["image", "text"])
         
         # Remove data URL prefix if present
-        image_base64 = request.image_data
+        image_base64 = headshot_req.image_data
         if ',' in image_base64:
             image_base64 = image_base64.split(',')[1]
         
@@ -811,9 +861,13 @@ async def generate_headshot(request: HeadshotRequest, current_user: dict = Depen
             # Save headshot URL to user profile
             headshot_data = f"data:image/png;base64,{images[0]['data']}"
             await db.users.update_one(
-                {"_id": ObjectId(current_user["id"])},
+                {"id": current_user["id"]},
                 {"$set": {"headshot_url": headshot_data}}
             )
+            
+            # Track AI usage
+            await track_ai_usage(current_user["id"], "headshot_generation")
+            
             return {"headshot_url": headshot_data, "message": text}
         else:
             raise HTTPException(status_code=500, detail="No image generated")
@@ -828,10 +882,10 @@ class JobAdRequest(BaseModel):
 
 @api_router.post("/generate-from-job-ad")
 @limiter.limit("15/hour")  # Limit job ad generation
-async def generate_from_job_ad(request: JobAdRequest, current_user: dict = Depends(get_current_user), req: Request = None):
+async def generate_from_job_ad(request: Request, job_req: JobAdRequest, current_user: dict = Depends(get_current_user)):
     """Generate tailored resume and cover letter from job description"""
     # Get user's resume
-    resume = await db.resumes.find_one({"user_id": current_user["id"], "_id": ObjectId(request.resume_id)}, {"_id": 0})
+    resume = await db.resumes.find_one({"user_id": current_user["id"], "_id": ObjectId(job_req.resume_id)}, {"_id": 0})
     if not resume:
         raise HTTPException(status_code=404, detail="Resume not found")
     
@@ -853,7 +907,7 @@ CRITICAL: Never fabricate experience or skills. Only highlight what's in the res
     
     user_prompt = f"""
 Job Description:
-{request.job_description}
+{job_req.job_description}
 
 Candidate's Resume:
 {resume_text}
@@ -911,8 +965,13 @@ class CoverLetterRequest(BaseModel):
 
 @api_router.post("/generate-cover-letter")
 @limiter.limit("15/hour")
-async def generate_cover_letter(request: CoverLetterRequest, current_user: dict = Depends(get_current_user), req: Request = None):
+async def generate_cover_letter(request: Request, cover_req: CoverLetterRequest, current_user: dict = Depends(get_current_user)):
     """Generate a professional cover letter"""
+    # Check AI limits
+    tier = current_user.get("subscription_tier", "free")
+    if not await check_ai_limits(current_user["id"], tier):
+        raise HTTPException(status_code=403, detail="AI usage limit reached. Please upgrade your plan.")
+    
     system_prompt = f"""You are an expert cover letter writer. Create professional, personalized cover letters that:
 - Highlight relevant experience and skills
 - Show enthusiasm for the role and company
@@ -926,12 +985,12 @@ Region: {current_user.get('region', 'US')}
     user_prompt = f"""
 Create a professional cover letter for:
 
-Applicant: {request.fullName or 'the candidate'}
-Position: {request.jobTitle}
-Company: {request.companyName}
-{f'Skills: {request.skills}' if request.skills else ''}
-{f'Experience: {request.experience}' if request.experience else ''}
-{f'Job Description: {request.jobDescription}' if request.jobDescription else ''}
+Applicant: {cover_req.fullName or 'the candidate'}
+Position: {cover_req.jobTitle}
+Company: {cover_req.companyName}
+{f'Skills: {cover_req.skills}' if cover_req.skills else ''}
+{f'Experience: {cover_req.experience}' if cover_req.experience else ''}
+{f'Job Description: {cover_req.jobDescription}' if cover_req.jobDescription else ''}
 
 Write a compelling cover letter that makes the candidate stand out.
 """
@@ -953,10 +1012,158 @@ Write a compelling cover letter that makes the candidate stand out.
             elif isinstance(event, StreamDone):
                 break
         
+        # Track AI usage
+        await track_ai_usage(current_user["id"], "cover_letter_generation")
+        
         return {"cover_letter": accumulated}
     except Exception as e:
-        logging.error(f"Cover letter generation error: {str(e)}")
+        logger.error(f"Cover letter generation error: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to generate cover letter")
+
+# ============ BULLET POINT WRITER ============
+class BulletPointRequest(BaseModel):
+    experience: str
+    role: str = ""
+    context: str = ""
+
+@api_router.post("/generate-bullet-points")
+@limiter.limit("20/hour")
+async def generate_bullet_points(request: Request, bullet_req: BulletPointRequest, current_user: dict = Depends(get_current_user)):
+    """Generate professional resume bullet points from experience description"""
+    # Check AI limits
+    tier = current_user.get("subscription_tier", "free")
+    if not await check_ai_limits(current_user["id"], tier):
+        raise HTTPException(status_code=403, detail="AI usage limit reached. Please upgrade your plan.")
+    
+    system_prompt = f"""You are an expert resume writer specializing in creating impactful, quantified bullet points.
+Transform user experiences into professional STAR-format bullet points that:
+- Start with strong action verbs
+- Include specific metrics and results when possible
+- Are concise (1-2 lines each)
+- Follow ATS best practices
+- Highlight achievements, not just duties
+
+Region: {current_user.get('region', 'US')}
+"""
+    
+    user_prompt = f"""
+Transform this experience into 4-5 professional resume bullet points:
+
+Experience: {bullet_req.experience}
+{f'Role: {bullet_req.role}' if bullet_req.role else ''}
+{f'Context: {bullet_req.context}' if bullet_req.context else ''}
+
+Generate impactful bullet points. Return ONLY a JSON array of strings:
+["bullet 1", "bullet 2", "bullet 3", "bullet 4", "bullet 5"]
+"""
+    
+    try:
+        chat = LlmChat(
+            api_key=os.environ["EMERGENT_LLM_KEY"],
+            session_id=f"bullets_{current_user['id']}",
+            system_message=system_prompt
+        )
+        chat.with_model("gemini", "gemini-3.5-flash")
+        
+        message = UserMessage(text=user_prompt)
+        
+        accumulated = ""
+        async for event in chat.stream_message(message):
+            if isinstance(event, TextDelta):
+                accumulated += event.content
+            elif isinstance(event, StreamDone):
+                break
+        
+        # Parse JSON response
+        try:
+            # Extract JSON array from response
+            import re
+            json_match = re.search(r'\[.*\]', accumulated, re.DOTALL)
+            if json_match:
+                bullet_points = json.loads(json_match.group())
+            else:
+                # Fallback: split by newlines
+                bullet_points = [line.strip().lstrip('•-*').strip() 
+                               for line in accumulated.split('\n') 
+                               if line.strip() and not line.strip().startswith('{')]
+        except Exception:
+            # Fallback parsing
+            bullet_points = [line.strip().lstrip('•-*').strip() 
+                           for line in accumulated.split('\n') 
+                           if line.strip()]
+        
+        # Track AI usage
+        await track_ai_usage(current_user["id"], "bullet_point_generation")
+        
+        return {"bullet_points": bullet_points[:5]}  # Max 5 bullets
+    except Exception as e:
+        logger.error(f"Bullet point generation error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to generate bullet points")
+
+# ============ SUMMARY GENERATOR ============
+class SummaryRequest(BaseModel):
+    currentRole: str = ""
+    yearsOfExperience: str = ""
+    keySkills: str
+    targetRole: str = ""
+    achievements: str = ""
+
+@api_router.post("/generate-summary")
+@limiter.limit("20/hour")
+async def generate_summary(request: Request, summary_req: SummaryRequest, current_user: dict = Depends(get_current_user)):
+    """Generate a professional resume summary"""
+    # Check AI limits
+    tier = current_user.get("subscription_tier", "free")
+    if not await check_ai_limits(current_user["id"], tier):
+        raise HTTPException(status_code=403, detail="AI usage limit reached. Please upgrade your plan.")
+    
+    system_prompt = f"""You are an expert resume writer specializing in professional summaries.
+Create compelling 2-3 sentence summaries that:
+- Highlight key strengths and experience
+- Include relevant skills
+- Show career trajectory
+- Are concise and impactful
+- Follow ATS best practices
+
+Region: {current_user.get('region', 'US')}
+"""
+    
+    user_prompt = f"""
+Create a professional resume summary based on:
+
+{f'Current Role: {summary_req.currentRole}' if summary_req.currentRole else ''}
+{f'Years of Experience: {summary_req.yearsOfExperience}' if summary_req.yearsOfExperience else ''}
+Key Skills: {summary_req.keySkills}
+{f'Target Role: {summary_req.targetRole}' if summary_req.targetRole else ''}
+{f'Key Achievements: {summary_req.achievements}' if summary_req.achievements else ''}
+
+Write a compelling 2-3 sentence professional summary that captures this candidate's value.
+"""
+    
+    try:
+        chat = LlmChat(
+            api_key=os.environ["EMERGENT_LLM_KEY"],
+            session_id=f"summary_{current_user['id']}",
+            system_message=system_prompt
+        )
+        chat.with_model("gemini", "gemini-3.5-flash")
+        
+        message = UserMessage(text=user_prompt)
+        
+        accumulated = ""
+        async for event in chat.stream_message(message):
+            if isinstance(event, TextDelta):
+                accumulated += event.content
+            elif isinstance(event, StreamDone):
+                break
+        
+        # Track AI usage
+        await track_ai_usage(current_user["id"], "summary_generation")
+        
+        return {"summary": accumulated.strip()}
+    except Exception as e:
+        logger.error(f"Summary generation error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to generate summary")
 
 # ============ ADMIN DASHBOARD ============
 @api_router.get("/admin/stats")
@@ -1202,4 +1409,6 @@ logger = logging.getLogger(__name__)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
+    client.close()
+
     client.close()

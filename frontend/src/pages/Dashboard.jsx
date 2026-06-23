@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
-import { FileText, Plus, Trash, PencilSimple, SignOut, Sparkle, Camera, Target, Crown, CreditCard } from '@phosphor-icons/react';
+import { FileText, Plus, Trash, PencilSimple, Sparkle, Camera, Target, Crown, CreditCard, ListBullets, TextAlignLeft, Stack } from '@phosphor-icons/react';
 import { ResumeUpload } from '../components/ResumeUpload';
 import AdSenseAd from '../components/AdSenseAd';
+import Navbar from '../components/Navbar';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -85,11 +86,6 @@ export const Dashboard = () => {
     }
   };
 
-  const handleLogout = async () => {
-    await logout();
-    navigate('/');
-  };
-
   const getATSColor = (score) => {
     if (score >= 70) return '#50C878';
     if (score >= 40) return '#F59E0B';
@@ -99,53 +95,7 @@ export const Dashboard = () => {
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
       {/* Navigation */}
-      <nav className="border-b" style={{ borderColor: '#E2E8F0', backgroundColor: '#FFFFFF' }}>
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <FileText size={32} weight="bold" style={{ color: '#001F3F' }} />
-            <span className="text-2xl font-semibold" style={{ fontFamily: 'Outfit', color: '#001F3F' }}>
-              ShortlistPro.cv
-            </span>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="body-text-sm">
-              <span style={{ color: '#708090' }}>Welcome, </span>
-              <span style={{ color: '#001F3F', fontWeight: 500 }}>{user?.name}</span>
-            </span>
-            {subscriptionStatus && subscriptionStatus.tier !== 'free' && (
-              <button
-                onClick={handleManageSubscription}
-                className="btn-secondary flex items-center gap-2"
-                style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}
-                data-testid="manage-subscription-btn"
-              >
-                <CreditCard size={16} weight="bold" />
-                Manage Subscription
-              </button>
-            )}
-            {subscriptionStatus && subscriptionStatus.can_upgrade && (
-              <button
-                onClick={() => navigate('/pricing')}
-                className="btn-primary flex items-center gap-2"
-                style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}
-                data-testid="upgrade-btn"
-              >
-                <Crown size={16} weight="bold" />
-                Upgrade
-              </button>
-            )}
-            <button
-              onClick={handleLogout}
-              data-testid="logout-button"
-              className="btn-secondary flex items-center gap-2"
-              style={{ padding: '0.5rem 1rem' }}
-            >
-              <SignOut size={18} weight="bold" />
-              Logout
-            </button>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-12">
@@ -190,16 +140,29 @@ export const Dashboard = () => {
                 </>
               )}
             </div>
-            {subscriptionStatus.can_upgrade && (
-              <button
-                onClick={() => navigate('/pricing')}
-                className="btn-primary flex items-center gap-2"
-                data-testid="banner-upgrade-btn"
-              >
-                <Crown size={18} weight="bold" />
-                Upgrade Now
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {subscriptionStatus.tier !== 'free' && (
+                <button
+                  onClick={handleManageSubscription}
+                  className="btn-secondary flex items-center gap-2"
+                  style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}
+                  data-testid="manage-subscription-btn"
+                >
+                  <CreditCard size={16} weight="bold" />
+                  Manage
+                </button>
+              )}
+              {subscriptionStatus.can_upgrade && (
+                <button
+                  onClick={() => navigate('/pricing')}
+                  className="btn-primary flex items-center gap-2"
+                  data-testid="banner-upgrade-btn"
+                >
+                  <Crown size={18} weight="bold" />
+                  Upgrade Now
+                </button>
+              )}
+            </div>
           </div>
         )}
 
@@ -249,6 +212,54 @@ export const Dashboard = () => {
               AI Headshot
             </h3>
             <p className="body-text-sm">Professional photo generator</p>
+          </button>
+
+          <button
+            onClick={() => navigate('/bullet-writer')}
+            className="card text-left hover:shadow-lg transition-shadow"
+            data-testid="bullet-writer-link"
+          >
+            <ListBullets size={28} weight="bold" style={{ color: '#8B5CF6', marginBottom: '0.5rem' }} />
+            <h3 className="text-base font-medium mb-1" style={{ fontFamily: 'Outfit', color: '#001F3F' }}>
+              Bullet Point Writer
+            </h3>
+            <p className="body-text-sm">Powerful resume bullets</p>
+          </button>
+
+          <button
+            onClick={() => navigate('/summary-generator')}
+            className="card text-left hover:shadow-lg transition-shadow"
+            data-testid="summary-generator-link"
+          >
+            <Sparkle size={28} weight="bold" style={{ color: '#F59E0B', marginBottom: '0.5rem' }} />
+            <h3 className="text-base font-medium mb-1" style={{ fontFamily: 'Outfit', color: '#001F3F' }}>
+              Summary Generator
+            </h3>
+            <p className="body-text-sm">Professional summaries</p>
+          </button>
+
+          <button
+            onClick={() => navigate('/cover-letter')}
+            className="card text-left hover:shadow-lg transition-shadow"
+            data-testid="cover-letter-link"
+          >
+            <TextAlignLeft size={28} weight="bold" style={{ color: '#3B82F6', marginBottom: '0.5rem' }} />
+            <h3 className="text-base font-medium mb-1" style={{ fontFamily: 'Outfit', color: '#001F3F' }}>
+              Cover Letter
+            </h3>
+            <p className="body-text-sm">Tailored cover letters</p>
+          </button>
+
+          <button
+            onClick={() => navigate('/templates')}
+            className="card text-left hover:shadow-lg transition-shadow"
+            data-testid="templates-link"
+          >
+            <Stack size={28} weight="bold" style={{ color: '#10B981', marginBottom: '0.5rem' }} />
+            <h3 className="text-base font-medium mb-1" style={{ fontFamily: 'Outfit', color: '#001F3F' }}>
+              Templates
+            </h3>
+            <p className="body-text-sm">Pre-made resume templates</p>
           </button>
 
           <button

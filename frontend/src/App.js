@@ -18,6 +18,8 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import CoverLetterGenerator from "./pages/CoverLetterGenerator";
 import AITools from "./pages/AITools";
 import Templates from "./pages/Templates";
+import BulletPointWriter from "./pages/BulletPointWriter";
+import SummaryGenerator from "./pages/SummaryGenerator";
 
 const GOOGLE_CLIENT_ID = "613554214488-v5qr5lt1efch2dg6hvm1ppik5485pv09.apps.googleusercontent.com";
 
@@ -102,6 +104,22 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Templates />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/bullet-writer"
+              element={
+                <ProtectedRoute>
+                  <BulletPointWriter />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/summary-generator"
+              element={
+                <ProtectedRoute>
+                  <SummaryGenerator />
                 </ProtectedRoute>
               }
             />
