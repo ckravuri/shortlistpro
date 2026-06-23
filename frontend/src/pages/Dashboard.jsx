@@ -78,16 +78,26 @@ export const Dashboard = () => {
 
   const handleDeleteResume = async (resumeId) => {
     if (!window.confirm('Are you sure you want to delete this resume?')) return;
+    
+    // Optimistically remove from UI first
+    const originalResumes = [...resumes];
+    setResumes(resumes.filter((r) => r.id !== resumeId));
+    
     try {
-      await fetch(`${API}/resumes/${resumeId}`, {
+      const response = await fetch(`${API}/resumes/${resumeId}`, {
         method: 'DELETE',
         credentials: 'include',
       });
-      // Remove from list immediately
-      setResumes(resumes.filter((r) => r.id !== resumeId));
+      
+      if (!response.ok) {
+        // Restore on error
+        setResumes(originalResumes);
+        throw new Error('Failed to delete');
+      }
     } catch (error) {
       console.error('Error deleting resume:', error);
-      alert('Failed to delete resume');
+      alert('Failed to delete resume. Please try again.');
+      setResumes(originalResumes); // Restore on error
     }
   };
 

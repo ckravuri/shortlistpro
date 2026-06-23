@@ -791,54 +791,31 @@ async def convert_pdf_to_word(file: UploadFile = File(...), current_user: dict =
     try:
         from docx import Document
         from docx.shared import Pt
+        import fitz  # PyMuPDF
         
-        # Read and parse PDF
+        # Read and extract text from PDF
         file_bytes = await file.read()
-        parsed_data = parse_pdf_resume(file_bytes)
+        pdf_document = fitz.open(stream=file_bytes, filetype="pdf")
         
         # Create Word document
         doc = Document()
         
-        # Personal Info
-        if parsed_data.get('name'):
-            doc.add_heading(parsed_data['name'], level=1)
+        # Extract text from each page and add to Word
+        for page_num in range(len(pdf_document)):
+            page = pdf_document[page_num]
+            text = page.get_text()
+            
+            # Split into paragraphs and add to Word
+            paragraphs = text.split('\n')
+            for para_text in paragraphs:
+                if para_text.strip():
+                    para = doc.add_paragraph(para_text.strip())
+                    # Set font
+                    for run in para.runs:
+                        run.font.name = 'Calibri'
+                        run.font.size = Pt(11)
         
-        contact_parts = []
-        if parsed_data.get('email'):
-            contact_parts.append(parsed_data['email'])
-        if parsed_data.get('phone'):
-            contact_parts.append(parsed_data['phone'])
-        if parsed_data.get('location'):
-            contact_parts.append(parsed_data['location'])
-        if contact_parts:
-            doc.add_paragraph(' | '.join(contact_parts))
-        
-        # Summary
-        if parsed_data.get('summary'):
-            doc.add_heading('Professional Summary', level=2)
-            doc.add_paragraph(parsed_data['summary'])
-        
-        # Work Experience
-        if parsed_data.get('work_experience'):
-            doc.add_heading('Work Experience', level=2)
-            for exp in parsed_data['work_experience']:
-                job_title = f"{exp.get('position', '')} at {exp.get('company', '')}"
-                doc.add_heading(job_title, level=3)
-                if exp.get('description'):
-                    doc.add_paragraph(exp['description'])
-        
-        # Education
-        if parsed_data.get('education'):
-            doc.add_heading('Education', level=2)
-            for edu in parsed_data['education']:
-                degree_info = f"{edu.get('degree', '')} in {edu.get('field', '')}"
-                doc.add_heading(degree_info, level=3)
-                doc.add_paragraph(edu.get('institution', ''))
-        
-        # Skills
-        if parsed_data.get('skills'):
-            doc.add_heading('Skills', level=2)
-            doc.add_paragraph(', '.join(parsed_data['skills']))
+        pdf_document.close()
         
         # Save to bytes
         from io import BytesIO
@@ -876,32 +853,48 @@ async def convert_word_to_pdf(file: UploadFile = File(...), current_user: dict =
     try:
         from docx import Document
         from io import BytesIO
+        from reportlab.lib.pagesizes import letter
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import inch
         
-        # Read and parse Word document
+        # Read Word document
         file_bytes = await file.read()
-        parsed_data = parse_docx_resume(file_bytes)
+        doc = Document(BytesIO(file_bytes))
         
-        # Create resume dict for PDF generation
-        resume_doc = {
-            "title": file.filename.rsplit('.', 1)[0],
-            "personal_info": {
-                "full_name": parsed_data.get("full_name", ""),
-                "email": parsed_data.get("email", ""),
-                "phone": parsed_data.get("phone", ""),
-                "location": parsed_data.get("location", ""),
-                "summary": parsed_data.get("summary", "")
-            },
-            "work_experience": parsed_data.get("work_experience", []),
-            "education": parsed_data.get("education", []),
-            "skills": parsed_data.get("skills", [])
-        }
+        # Create PDF
+        pdf_buffer = BytesIO()
+        pdf_doc = SimpleDocTemplate(pdf_buffer, pagesize=letter)
+        story = []
+        styles = getSampleStyleSheet()
         
-        # Generate PDF
-        pdf_bytes = generate_resume_pdf(resume_doc)
+        # Custom styles
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=16,
+            textColor='#001F3F',
+            spaceAfter=12
+        )
+        normal_style = styles['Normal']
+        
+        # Extract and convert content
+        for para in doc.paragraphs:
+            if para.text.strip():
+                # Check if it's a heading (based on font size or style)
+                if para.style.name.startswith('Heading'):
+                    story.append(Paragraph(para.text, title_style))
+                else:
+                    story.append(Paragraph(para.text, normal_style))
+                story.append(Spacer(1, 0.1*inch))
+        
+        # Build PDF
+        pdf_doc.build(story)
+        pdf_buffer.seek(0)
         
         original_name = file.filename.rsplit('.', 1)[0]
         return Response(
-            content=pdf_bytes,
+            content=pdf_buffer.getvalue(),
             media_type="application/pdf",
             headers={
                 "Content-Disposition": f"attachment; filename={original_name}.pdf"

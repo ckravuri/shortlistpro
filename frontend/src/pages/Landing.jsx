@@ -37,7 +37,7 @@ export const Landing = () => {
               className="btn-primary"
               style={{ padding: '0.5rem 1.5rem' }}
             >
-              Get Started
+              Get Started Free
             </Link>
           </div>
         </div>

@@ -177,14 +177,23 @@ export const Pricing = () => {
                   <span className="text-4xl font-bold" style={{ color: '#001F3F' }}>
                     ${tier.price.toFixed(2)}
                   </span>
-                  <span className="body-text-sm"> USD/month</span>
+                  {tier.price > 0 && <span className="body-text-sm"> USD/month</span>}
                 </div>
-                <p className="body-text-sm" style={{ color: '#708090' }}>
-                  Billed monthly • Cancel anytime
-                </p>
-                {tier.tier !== 'free' && (
-                  <p className="text-xs mt-2" style={{ color: '#708090' }}>
-                    Prices shown in USD. Stripe automatically converts to your local currency.
+                {tier.price > 0 && (
+                  <>
+                    <p className="body-text-sm" style={{ color: '#708090' }}>
+                      Billed monthly • Cancel anytime
+                    </p>
+                    {tier.tier !== 'free' && (
+                      <p className="text-xs mt-2" style={{ color: '#708090' }}>
+                        Prices shown in USD. Stripe automatically converts to your local currency.
+                      </p>
+                    )}
+                  </>
+                )}
+                {tier.price === 0 && (
+                  <p className="body-text-sm" style={{ color: '#50C878', fontWeight: 500 }}>
+                    No credit card required
                   </p>
                 )}
               </div>
