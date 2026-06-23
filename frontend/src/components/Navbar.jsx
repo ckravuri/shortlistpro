@@ -30,8 +30,8 @@ export const Navbar = () => {
     { name: 'Bullet Point Writer', icon: ListBullets, path: '/bullet-writer', color: '#8B5CF6' },
     { name: 'Summary Generator', icon: Sparkle, path: '/summary-generator', color: '#F59E0B' },
     { name: 'Cover Letter', icon: TextAlignLeft, path: '/cover-letter', color: '#3B82F6' },
-    { name: 'STAR Builder', icon: Target, path: '/star-builder', color: '#EC4899' },
-    { name: 'Job Ad Generator', icon: Briefcase, path: '/job-ad-generator', color: '#14B8A6' }
+    { name: 'Selection Criteria', icon: Target, path: '/selection-criteria', color: '#EC4899' },
+    { name: 'Tailor Resume to Job Ad', icon: Briefcase, path: '/job-ad-generator', color: '#14B8A6' }
   ];
 
   return (
@@ -39,9 +39,21 @@ export const Navbar = () => {
       <div className="max-w-7xl mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link to="/dashboard" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+          <Link 
+            to="/" 
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity group"
+          >
             <FileText size={32} weight="bold" style={{ color: '#001F3F' }} />
-            <span className="text-2xl font-semibold" style={{ fontFamily: 'Outfit', color: '#001F3F' }}>
+            <span 
+              className="text-2xl font-bold tracking-tight"
+              style={{ 
+                fontFamily: 'Outfit', 
+                background: 'linear-gradient(135deg, #001F3F 0%, #50C878 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+              }}
+            >
               ShortlistPro.cv
             </span>
           </Link>

@@ -290,6 +290,33 @@ export const ResumeBuilder = () => {
               <DownloadSimple size={18} weight="bold" />
               Export PDF
             </button>
+            <button
+              onClick={async () => {
+                try {
+                  const response = await fetch(`${API}/resumes/${resumeId}/export/word`, {
+                    credentials: 'include',
+                  });
+                  if (!response.ok) throw new Error('Export failed');
+                  const blob = await response.blob();
+                  const url = window.URL.createObjectURL(blob);
+                  const link = document.createElement('a');
+                  link.href = url;
+                  link.download = `${resume.title || 'resume'}.docx`;
+                  document.body.appendChild(link);
+                  link.click();
+                  link.remove();
+                } catch (error) {
+                  console.error('Export error:', error);
+                  alert('Failed to export Word document');
+                }
+              }}
+              data-testid="export-word-button"
+              className="btn-secondary flex items-center gap-2"
+              style={{ padding: '0.5rem 1.25rem' }}
+            >
+              <DownloadSimple size={18} weight="bold" />
+              Export Word
+            </button>
           </div>
         </div>
       </nav>

@@ -564,7 +564,7 @@ async def delete_resume(resume_id: str, current_user: dict = Depends(get_current
 # ============ AI SUGGESTION (Streaming) ============
 @api_router.post("/resumes/{resume_id}/ai-suggest")
 @limiter.limit("20/hour")  # Prevent AI abuse - 20 suggestions per hour
-async def ai_suggest(resume_id: str, request: AISuggestionRequest, current_user: dict = Depends(get_current_user), req: Request = None):
+async def ai_suggest(request: Request, resume_id: str, ai_req: AISuggestionRequest, current_user: dict = Depends(get_current_user)):
     resume = await db.resumes.find_one({"user_id": current_user["id"], "_id": ObjectId(resume_id)})
     if not resume:
         raise HTTPException(status_code=404, detail="Resume not found")
@@ -583,9 +583,9 @@ CRITICAL RULES:
 """
     
     user_prompt = f"""
-Field: {request.field}
-Context: {request.context}
-Current text: {request.current_text}
+Field: {ai_req.field}
+Context: {ai_req.context}
+Current text: {ai_req.current_text}
 
 Provide a professional suggestion to improve this content. If metrics are needed but not provided, flag with [Add metric here].
 """
@@ -594,7 +594,7 @@ Provide a professional suggestion to improve this content. If metrics are needed
         try:
             chat = LlmChat(
                 api_key=os.environ["EMERGENT_LLM_KEY"],
-                session_id=f"resume_{resume_id}_{request.field}",
+                session_id=f"resume_{resume_id}_{ai_req.field}",
                 system_message=system_prompt
             )
             chat.with_model("gemini", "gemini-3.5-flash")
@@ -685,6 +685,175 @@ async def export_pdf(resume_id: str, current_user: dict = Depends(get_current_us
     except Exception as e:
         logger.error(f"PDF generation error: {e}")
         raise HTTPException(status_code=500, detail="Failed to generate PDF")
+
+@api_router.get("/resumes/{resume_id}/export/word")
+async def export_word(resume_id: str, current_user: dict = Depends(get_current_user)):
+    """Export resume as MS Word document"""
+    resume = await db.resumes.find_one({"user_id": current_user["id"], "_id": ObjectId(resume_id)}, {"_id": 0})
+    if not resume:
+        raise HTTPException(status_code=404, detail="Resume not found")
+    
+    try:
+        from docx import Document
+        from docx.shared import Pt, RGBColor, Inches
+        from docx.enum.text import WD_ALIGN_PARAGRAPH
+        
+        doc = Document()
+        
+        # Personal Info
+        personal_info = resume.get('personal_info', {})
+        if personal_info.get('full_name'):
+            heading = doc.add_heading(personal_info['full_name'], level=1)
+            heading.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        
+        # Contact info
+        contact_parts = []
+        if personal_info.get('email'):
+            contact_parts.append(personal_info['email'])
+        if personal_info.get('phone'):
+            contact_parts.append(personal_info['phone'])
+        if personal_info.get('location'):
+            contact_parts.append(personal_info['location'])
+        
+        if contact_parts:
+            contact_para = doc.add_paragraph(' | '.join(contact_parts))
+            contact_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        
+        # Professional Summary
+        if personal_info.get('summary'):
+            doc.add_heading('Professional Summary', level=2)
+            doc.add_paragraph(personal_info['summary'])
+        
+        # Work Experience
+        work_exp = resume.get('work_experience', [])
+        if work_exp:
+            doc.add_heading('Work Experience', level=2)
+            for exp in work_exp:
+                job_title = f"{exp.get('position', '')} at {exp.get('company', '')}"
+                doc.add_heading(job_title, level=3)
+                date_range = f"{exp.get('start_date', '')} - {exp.get('end_date', 'Present') if not exp.get('current') else 'Present'}"
+                doc.add_paragraph(date_range).italic = True
+                if exp.get('description'):
+                    doc.add_paragraph(exp['description'])
+                for achievement in exp.get('achievements', []):
+                    doc.add_paragraph(achievement, style='List Bullet')
+        
+        # Education
+        education = resume.get('education', [])
+        if education:
+            doc.add_heading('Education', level=2)
+            for edu in education:
+                degree_info = f"{edu.get('degree', '')} in {edu.get('field', '')}"
+                doc.add_heading(degree_info, level=3)
+                doc.add_paragraph(f"{edu.get('institution', '')} | {edu.get('start_date', '')} - {edu.get('end_date', '')}")
+        
+        # Skills
+        skills = resume.get('skills', [])
+        if skills:
+            doc.add_heading('Skills', level=2)
+            doc.add_paragraph(', '.join(skills))
+        
+        # Save to bytes
+        from io import BytesIO
+        docx_bytes = BytesIO()
+        doc.save(docx_bytes)
+        docx_bytes.seek(0)
+        
+        return Response(
+            content=docx_bytes.getvalue(),
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            headers={
+                "Content-Disposition": f"attachment; filename={resume.get('title', 'resume')}.docx"
+            }
+        )
+    except Exception as e:
+        logger.error(f"Word generation error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate Word document")
+
+@api_router.post("/convert-pdf-to-word")
+async def convert_pdf_to_word(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
+    """Convert uploaded PDF resume to MS Word format (Paid users only)"""
+    # Check subscription tier
+    tier = current_user.get("subscription_tier", "free")
+    if tier == "free":
+        raise HTTPException(status_code=403, detail="PDF to Word conversion is available for Pro and Pro+ users only. Please upgrade your plan.")
+    
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No file uploaded")
+    
+    file_ext = file.filename.lower().split('.')[-1]
+    if file_ext != 'pdf':
+        raise HTTPException(status_code=400, detail="Only PDF files are supported for conversion")
+    
+    try:
+        from docx import Document
+        from docx.shared import Pt
+        
+        # Read and parse PDF
+        file_bytes = await file.read()
+        parsed_data = parse_pdf_resume(file_bytes)
+        
+        # Create Word document
+        doc = Document()
+        
+        # Personal Info
+        if parsed_data.get('name'):
+            doc.add_heading(parsed_data['name'], level=1)
+        
+        contact_parts = []
+        if parsed_data.get('email'):
+            contact_parts.append(parsed_data['email'])
+        if parsed_data.get('phone'):
+            contact_parts.append(parsed_data['phone'])
+        if parsed_data.get('location'):
+            contact_parts.append(parsed_data['location'])
+        if contact_parts:
+            doc.add_paragraph(' | '.join(contact_parts))
+        
+        # Summary
+        if parsed_data.get('summary'):
+            doc.add_heading('Professional Summary', level=2)
+            doc.add_paragraph(parsed_data['summary'])
+        
+        # Work Experience
+        if parsed_data.get('work_experience'):
+            doc.add_heading('Work Experience', level=2)
+            for exp in parsed_data['work_experience']:
+                job_title = f"{exp.get('position', '')} at {exp.get('company', '')}"
+                doc.add_heading(job_title, level=3)
+                if exp.get('description'):
+                    doc.add_paragraph(exp['description'])
+        
+        # Education
+        if parsed_data.get('education'):
+            doc.add_heading('Education', level=2)
+            for edu in parsed_data['education']:
+                degree_info = f"{edu.get('degree', '')} in {edu.get('field', '')}"
+                doc.add_heading(degree_info, level=3)
+                doc.add_paragraph(edu.get('institution', ''))
+        
+        # Skills
+        if parsed_data.get('skills'):
+            doc.add_heading('Skills', level=2)
+            doc.add_paragraph(', '.join(parsed_data['skills']))
+        
+        # Save to bytes
+        from io import BytesIO
+        docx_bytes = BytesIO()
+        doc.save(docx_bytes)
+        docx_bytes.seek(0)
+        
+        original_name = file.filename.rsplit('.', 1)[0]
+        return Response(
+            content=docx_bytes.getvalue(),
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            headers={
+                "Content-Disposition": f"attachment; filename={original_name}.docx"
+            }
+        )
+    except Exception as e:
+        logger.error(f"PDF to Word conversion error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to convert PDF to Word: {str(e)}")
 
 # ============ FILE UPLOAD & PARSING ============
 @api_router.post("/resumes/upload")
@@ -1165,6 +1334,74 @@ Write a compelling 2-3 sentence professional summary that captures this candidat
         logger.error(f"Summary generation error: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to generate summary")
 
+# ============ SELECTION CRITERIA RESPONSE ============
+class SelectionCriteriaRequest(BaseModel):
+    question: str
+    resumeContext: str
+
+@api_router.post("/generate-selection-criteria")
+@limiter.limit("15/hour")
+async def generate_selection_criteria(request: Request, criteria_req: SelectionCriteriaRequest, current_user: dict = Depends(get_current_user)):
+    """Generate STAR-format response to selection criteria question"""
+    # Check AI limits
+    tier = current_user.get("subscription_tier", "free")
+    if not await check_ai_limits(current_user["id"], tier):
+        raise HTTPException(status_code=403, detail="AI usage limit reached. Please upgrade your plan.")
+    
+    system_prompt = f"""You are an expert career counselor specializing in selection criteria responses.
+Create compelling STAR-format responses that:
+- Follow the STAR framework (Situation, Task, Action, Result)
+- Are specific and detailed
+- Include quantifiable achievements where possible
+- Demonstrate relevant skills and competencies
+- Are well-structured and professional
+- Never fabricate information - only use what's provided in the resume context
+
+Region: {current_user.get('region', 'US')}
+"""
+    
+    user_prompt = f"""
+Selection Criteria Question:
+{criteria_req.question}
+
+Candidate's Resume/Experience:
+{criteria_req.resumeContext}
+
+Generate a professional STAR-format response to the selection criteria question based ONLY on the provided resume/experience.
+Structure your response clearly with:
+- Situation: (context)
+- Task: (responsibility)
+- Action: (what was done)
+- Result: (outcome and impact)
+
+Write a compelling response that demonstrates the candidate's suitability.
+"""
+    
+    try:
+        chat = LlmChat(
+            api_key=os.environ["EMERGENT_LLM_KEY"],
+            session_id=f"selection_{current_user['id']}",
+            system_message=system_prompt
+        )
+        chat.with_model("gemini", "gemini-3.5-flash")
+        
+        message = UserMessage(text=user_prompt)
+        
+        accumulated = ""
+        async for event in chat.stream_message(message):
+            if isinstance(event, TextDelta):
+                accumulated += event.content
+            elif isinstance(event, StreamDone):
+                break
+        
+        # Track AI usage
+        await track_ai_usage(current_user["id"], "selection_criteria_generation")
+        
+        return {"response": accumulated.strip()}
+    except Exception as e:
+        logger.error(f"Selection criteria generation error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to generate selection criteria response")
+
 # ============ ADMIN DASHBOARD ============
 @api_router.get("/admin/stats")
 async def get_admin_stats(current_user: dict = Depends(get_current_user)):
@@ -1210,22 +1447,22 @@ async def get_admin_stats(current_user: dict = Depends(get_current_user)):
 # Subscription tier limits
 TIER_LIMITS = {
     "free": {
-        "max_resumes": 3,
+        "max_resumes": 1,
         "max_ai_suggestions": 5,
-        "max_pdf_exports": 3,
+        "max_pdf_exports": 1,
         "features": ["basic_resume_builder", "basic_ats_score"]
     },
     "pro": {
         "max_resumes": -1,  # unlimited
         "max_ai_suggestions": -1,
         "max_pdf_exports": -1,
-        "features": ["resume_upload", "ats_history", "star_builder", "job_ad_generator"]
+        "features": ["resume_upload", "ats_history", "selection_criteria", "tailor_to_job_ad", "word_export", "pdf_to_word"]
     },
     "pro+": {
         "max_resumes": -1,
         "max_ai_suggestions": -1,
         "max_pdf_exports": -1,
-        "features": ["resume_upload", "ats_history", "star_builder", "job_ad_generator", "headshot_generator"]
+        "features": ["resume_upload", "ats_history", "selection_criteria", "tailor_to_job_ad", "headshot_generator", "word_export", "pdf_to_word", "priority_support"]
     }
 }
 

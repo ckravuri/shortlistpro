@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
-import { UploadSimple, FileText, FilePdf } from '@phosphor-icons/react';
+import { UploadSimple, FileText, FilePdf, ArrowsClockwise } from '@phosphor-icons/react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
 export const ResumeUpload = () => {
   const [uploading, setUploading] = useState(false);
+  const [converting, setConverting] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -32,6 +35,49 @@ export const ResumeUpload = () => {
       setError(err.response?.data?.detail || 'Failed to upload resume');
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handlePdfToWord = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const tier = user?.subscription_tier || 'free';
+    if (tier === 'free') {
+      setError('PDF to Word conversion is available for Pro and Pro+ users only. Please upgrade your plan.');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    setConverting(true);
+    setError('');
+
+    try {
+      const response = await fetch(`${API}/convert-pdf-to-word`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Conversion failed');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = file.name.replace('.pdf', '.docx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      setError(err.message || 'Failed to convert PDF to Word');
+    } finally {
+      setConverting(false);
     }
   };
 
@@ -66,6 +112,44 @@ export const ResumeUpload = () => {
         className="hidden"
         data-testid="resume-upload-input"
       />
+      
+      {/* PDF to Word Converter */}
+      {user && user.subscription_tier !== 'free' && (
+        <div className="mt-6 pt-6 border-t" style={{ borderColor: '#E2E8F0' }}>
+          <div className="flex items-center gap-2 mb-4">
+            <ArrowsClockwise size={24} weight="bold" style={{ color: '#3B82F6' }} />
+            <h3 className="text-lg font-medium" style={{ fontFamily: 'Outfit', color: '#001F3F' }}>
+              Convert PDF to Word
+            </h3>
+            <span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: '#F59E0B15', color: '#F59E0B' }}>
+              PRO
+            </span>
+          </div>
+          <p className="body-text-sm mb-4">
+            Upload a PDF resume and download it as an editable MS Word document.
+          </p>
+          
+          <label htmlFor="pdf-convert" className="btn-secondary inline-flex items-center gap-2 cursor-pointer">
+            {converting ? (
+              'Converting...'
+            ) : (
+              <>
+                <FilePdf size={18} weight="bold" />
+                Convert PDF to Word
+              </>
+            )}
+          </label>
+          <input
+            id="pdf-convert"
+            type="file"
+            accept=".pdf"
+            onChange={handlePdfToWord}
+            disabled={converting}
+            className="hidden"
+            data-testid="pdf-convert-input"
+          />
+        </div>
+      )}
       
       {error && (
         <div

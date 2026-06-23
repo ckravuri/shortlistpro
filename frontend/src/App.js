@@ -20,6 +20,7 @@ import AITools from "./pages/AITools";
 import Templates from "./pages/Templates";
 import BulletPointWriter from "./pages/BulletPointWriter";
 import SummaryGenerator from "./pages/SummaryGenerator";
+import SelectionCriteria from "./pages/SelectionCriteria";
 
 const GOOGLE_CLIENT_ID = "613554214488-v5qr5lt1efch2dg6hvm1ppik5485pv09.apps.googleusercontent.com";
 
@@ -120,6 +121,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <SummaryGenerator />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/selection-criteria"
+              element={
+                <ProtectedRoute>
+                  <SelectionCriteria />
                 </ProtectedRoute>
               }
             />

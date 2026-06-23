@@ -191,15 +191,15 @@ export const Dashboard = () => {
         {/* Feature Cards */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <button
-            onClick={() => navigate('/star-builder')}
+            onClick={() => navigate('/selection-criteria')}
             className="card text-left hover:shadow-lg transition-shadow"
-            data-testid="star-builder-link"
+            data-testid="selection-criteria-link"
           >
-            <Target size={28} weight="bold" style={{ color: '#50C878', marginBottom: '0.5rem' }} />
+            <Target size={28} weight="bold" style={{ color: '#EC4899', marginBottom: '0.5rem' }} />
             <h3 className="text-base font-medium mb-1" style={{ fontFamily: 'Outfit', color: '#001F3F' }}>
-              STAR Builder
+              Selection Criteria
             </h3>
-            <p className="body-text-sm">AU Govt selection criteria</p>
+            <p className="body-text-sm">STAR-format responses</p>
           </button>
 
           <button
@@ -267,11 +267,11 @@ export const Dashboard = () => {
             className="card text-left hover:shadow-lg transition-shadow"
             data-testid="job-ad-generator-link"
           >
-            <Sparkle size={28} weight="bold" style={{ color: '#50C878', marginBottom: '0.5rem' }} />
+            <Sparkle size={28} weight="bold" style={{ color: '#14B8A6', marginBottom: '0.5rem' }} />
             <h3 className="text-base font-medium mb-1" style={{ fontFamily: 'Outfit', color: '#001F3F' }}>
-              Job Ad Generator
+              Tailor Resume to Job Ad
             </h3>
-            <p className="body-text-sm">Tailored resume & cover letter</p>
+            <p className="body-text-sm">Customize for any job posting</p>
           </button>
 
           {user?.role === 'admin' && (
