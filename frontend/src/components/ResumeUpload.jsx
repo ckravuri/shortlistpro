@@ -10,6 +10,7 @@ const API = `${BACKEND_URL}/api`;
 export const ResumeUpload = () => {
   const [uploading, setUploading] = useState(false);
   const [converting, setConverting] = useState(false);
+  const [convertingToPdf, setConvertingToPdf] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -78,6 +79,49 @@ export const ResumeUpload = () => {
       setError(err.message || 'Failed to convert PDF to Word');
     } finally {
       setConverting(false);
+    }
+  };
+
+  const handleWordToPdf = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const tier = user?.subscription_tier || 'free';
+    if (tier === 'free') {
+      setError('Word to PDF conversion is available for Pro and Pro+ users only. Please upgrade your plan.');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    setConvertingToPdf(true);
+    setError('');
+
+    try {
+      const response = await fetch(`${API}/convert-word-to-pdf`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Conversion failed');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = file.name.replace(/\.(docx?|DOCX?)$/, '.pdf');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      setError(err.message || 'Failed to convert Word to PDF');
+    } finally {
+      setConvertingToPdf(false);
     }
   };
 

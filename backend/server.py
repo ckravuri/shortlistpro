@@ -855,6 +855,59 @@ async def convert_pdf_to_word(file: UploadFile = File(...), current_user: dict =
         logger.error(f"PDF to Word conversion error: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to convert PDF to Word: {str(e)}")
 
+@api_router.post("/convert-word-to-pdf")
+async def convert_word_to_pdf(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
+    """Convert uploaded Word document to PDF format (Paid users only)"""
+    # Check subscription tier
+    tier = current_user.get("subscription_tier", "free")
+    if tier == "free":
+        raise HTTPException(status_code=403, detail="Word to PDF conversion is available for Pro and Pro+ users only. Please upgrade your plan.")
+    
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No file uploaded")
+    
+    file_ext = file.filename.lower().split('.')[-1]
+    if file_ext not in ['docx', 'doc']:
+        raise HTTPException(status_code=400, detail="Only Word documents (.docx, .doc) are supported for conversion")
+    
+    try:
+        from docx import Document
+        from io import BytesIO
+        
+        # Read and parse Word document
+        file_bytes = await file.read()
+        parsed_data = parse_docx_resume(file_bytes)
+        
+        # Create resume dict for PDF generation
+        resume_doc = {
+            "title": file.filename.rsplit('.', 1)[0],
+            "personal_info": {
+                "full_name": parsed_data.get("full_name", ""),
+                "email": parsed_data.get("email", ""),
+                "phone": parsed_data.get("phone", ""),
+                "location": parsed_data.get("location", ""),
+                "summary": parsed_data.get("summary", "")
+            },
+            "work_experience": parsed_data.get("work_experience", []),
+            "education": parsed_data.get("education", []),
+            "skills": parsed_data.get("skills", [])
+        }
+        
+        # Generate PDF
+        pdf_bytes = generate_resume_pdf(resume_doc)
+        
+        original_name = file.filename.rsplit('.', 1)[0]
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename={original_name}.pdf"
+            }
+        )
+    except Exception as e:
+        logger.error(f"Word to PDF conversion error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to convert Word to PDF: {str(e)}")
+
 # ============ FILE UPLOAD & PARSING ============
 @api_router.post("/resumes/upload")
 async def upload_resume(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
