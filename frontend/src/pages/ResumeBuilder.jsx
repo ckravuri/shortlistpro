@@ -30,6 +30,8 @@ export const ResumeBuilder = () => {
   const [aiLoading, setAiLoading] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
   const [aiContext, setAiContext] = useState({ field: '', context: '', current_text: '' });
+  const [newSkill, setNewSkill] = useState('');
+  const [showSkillInput, setShowSkillInput] = useState(false);
 
   useEffect(() => {
     fetchResume();
@@ -140,11 +142,12 @@ export const ResumeBuilder = () => {
   };
 
   const addSkill = () => {
-    const skill = prompt('Enter a skill:');
-    if (skill && skill.trim()) {
-      const updatedSkills = [...(resume.skills || []), skill.trim()];
+    if (newSkill && newSkill.trim()) {
+      const updatedSkills = [...(resume.skills || []), newSkill.trim()];
       setResume({ ...resume, skills: updatedSkills });
       saveResume({ skills: updatedSkills });
+      setNewSkill('');
+      setShowSkillInput(false);
     }
   };
 
@@ -264,59 +267,20 @@ export const ResumeBuilder = () => {
           </div>
           <div className="flex items-center gap-4">
             {saving && <span className="body-text-sm" style={{ color: '#708090' }}>Saving...</span>}
-            <button
-              onClick={async () => {
-                try {
-                  const response = await axios.get(`${API}/resumes/${resumeId}/export/pdf`, {
-                    withCredentials: true,
-                    responseType: 'blob'
-                  });
-                  const url = window.URL.createObjectURL(new Blob([response.data]));
-                  const link = document.createElement('a');
-                  link.href = url;
-                  link.setAttribute('download', `${resume.title}.pdf`);
-                  document.body.appendChild(link);
-                  link.click();
-                  link.remove();
-                } catch (error) {
-                  console.error('Export error:', error);
-                  alert('Failed to export PDF');
-                }
-              }}
-              data-testid="export-resume-button"
-              className="btn-primary flex items-center gap-2"
-              style={{ padding: '0.5rem 1.25rem' }}
-            >
-              <DownloadSimple size={18} weight="bold" />
-              Export PDF
-            </button>
-            <button
-              onClick={async () => {
-                try {
-                  const response = await fetch(`${API}/resumes/${resumeId}/export/word`, {
-                    credentials: 'include',
-                  });
-                  if (!response.ok) throw new Error('Export failed');
-                  const blob = await response.blob();
-                  const url = window.URL.createObjectURL(blob);
-                  const link = document.createElement('a');
-                  link.href = url;
-                  link.download = `${resume.title || 'resume'}.docx`;
-                  document.body.appendChild(link);
-                  link.click();
-                  link.remove();
-                } catch (error) {
-                  console.error('Export error:', error);
-                  alert('Failed to export Word document');
-                }
-              }}
-              data-testid="export-word-button"
-              className="btn-secondary flex items-center gap-2"
-              style={{ padding: '0.5rem 1.25rem' }}
-            >
-              <DownloadSimple size={18} weight="bold" />
-              Export Word
-            </button>
+            {/* ATS Score */}
+            <div className="flex items-center gap-2">
+              <span className="body-text-sm" style={{ color: '#708090' }}>ATS Score:</span>
+              <span
+                className="px-3 py-1 rounded-full font-semibold"
+                style={{
+                  backgroundColor: `${getATSColor(atsScore)}15`,
+                  color: getATSColor(atsScore)
+                }}
+                data-testid="ats-score"
+              >
+                {atsScore}/100
+              </span>
+            </div>
           </div>
         </div>
       </nav>
@@ -653,38 +617,271 @@ export const ResumeBuilder = () => {
               <div className="flex items-center justify-between mb-6">
                 <h2 className="heading-section">Skills</h2>
                 <button
-                  onClick={addSkill}
+                  onClick={() => setShowSkillInput(true)}
                   data-testid="add-skill"
                   className="btn-primary flex items-center gap-2"
                   style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}
                 >
                   <Plus size={16} weight="bold" />
-                  Add
+                  Add Skill
                 </button>
               </div>
-              {resume.skills?.length === 0 && (
+
+              {/* Add Skill Input */}
+              {showSkillInput && (
+                <div className="mb-4 flex gap-2">
+                  <input
+                    type="text"
+                    value={newSkill}
+                    onChange={(e) => setNewSkill(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && addSkill()}
+                    placeholder="e.g., Python, Project Management, Communication"
+                    className="input-field flex-1"
+                    autoFocus
+                  />
+                  <button
+                    onClick={addSkill}
+                    className="btn-primary px-4"
+                    disabled={!newSkill.trim()}
+                  >
+                    <Check size={18} weight="bold" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowSkillInput(false);
+                      setNewSkill('');
+                    }}
+                    className="btn-secondary px-4"
+                  >
+                    <X size={18} weight="bold" />
+                  </button>
+                </div>
+              )}
+
+              {resume.skills?.length === 0 && !showSkillInput && (
                 <p className="body-text-sm text-center py-4" style={{ color: '#708090' }}>
-                  No skills added yet
+                  No skills added yet. Click "Add Skill" to get started.
                 </p>
               )}
               <div className="flex flex-wrap gap-2">
                 {resume.skills?.map((skill, index) => (
                   <div
                     key={index}
-                    className="flex items-center gap-2 border rounded-sm px-3 py-1"
-                    style={{ borderColor: '#E2E8F0', backgroundColor: '#F8FAFC' }}
+                    className="flex items-center gap-2 border rounded-sm px-3 py-2"
+                    style={{ borderColor: '#50C878', backgroundColor: '#F0FDF4' }}
                     data-testid={`skill-${index}`}
                   >
-                    <span className="body-text-sm">{skill}</span>
+                    <span className="body-text-sm font-medium" style={{ color: '#166534' }}>{skill}</span>
                     <button
                       onClick={() => deleteSkill(index)}
                       data-testid={`delete-skill-${index}`}
-                      style={{ color: '#708090' }}
+                      className="hover:opacity-70"
+                      style={{ color: '#DC2626' }}
                     >
-                      <X size={14} weight="bold" />
+                      <X size={16} weight="bold" />
                     </button>
                   </div>
                 ))}
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT COLUMN - LIVE PREVIEW */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-6">
+              {/* Preview Card */}
+              <div className="card">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="heading-section">Resume Preview</h2>
+                  <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: '#F0FDF4', color: '#166534' }}>
+                    Live
+                  </span>
+                </div>
+
+                {/* Preview Content */}
+                <div 
+                  className="border-2 rounded-lg p-6 min-h-[600px]"
+                  style={{ 
+                    backgroundColor: '#FFFFFF',
+                    borderColor: '#E2E8F0',
+                    fontSize: '11px',
+                    lineHeight: '1.4'
+                  }}
+                >
+                  {/* Personal Info */}
+                  {resume?.personal_info && (
+                    <div className="mb-4 text-center">
+                      <h1 className="text-2xl font-bold mb-1" style={{ color: '#001F3F' }}>
+                        {resume.personal_info.full_name || 'Your Name'}
+                      </h1>
+                      <div className="flex justify-center flex-wrap gap-2 text-xs" style={{ color: '#708090' }}>
+                        {resume.personal_info.email && <span>{resume.personal_info.email}</span>}
+                        {resume.personal_info.phone && <span>•</span>}
+                        {resume.personal_info.phone && <span>{resume.personal_info.phone}</span>}
+                        {resume.personal_info.location && <span>•</span>}
+                        {resume.personal_info.location && <span>{resume.personal_info.location}</span>}
+                      </div>
+                      {resume.personal_info.linkedin && (
+                        <div className="text-xs mt-1" style={{ color: '#3B82F6' }}>
+                          {resume.personal_info.linkedin}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Professional Summary */}
+                  {resume?.personal_info?.summary && (
+                    <div className="mb-4">
+                      <div className="font-bold mb-1 pb-1 border-b-2" style={{ color: '#001F3F', borderColor: '#50C878' }}>
+                        PROFESSIONAL SUMMARY
+                      </div>
+                      <p className="text-xs" style={{ color: '#001F3F' }}>
+                        {resume.personal_info.summary}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Work Experience */}
+                  {resume?.work_experience && resume.work_experience.length > 0 && (
+                    <div className="mb-4">
+                      <div className="font-bold mb-2 pb-1 border-b-2" style={{ color: '#001F3F', borderColor: '#50C878' }}>
+                        WORK EXPERIENCE
+                      </div>
+                      {resume.work_experience.map((exp, idx) => (
+                        <div key={idx} className="mb-3">
+                          <div className="flex justify-between items-start mb-1">
+                            <div>
+                              <div className="font-bold text-xs" style={{ color: '#001F3F' }}>
+                                {exp.position || 'Position'} {exp.company && `• ${exp.company}`}
+                              </div>
+                              {exp.location && (
+                                <div className="text-xs" style={{ color: '#708090' }}>{exp.location}</div>
+                              )}
+                            </div>
+                            <div className="text-xs whitespace-nowrap" style={{ color: '#708090' }}>
+                              {exp.start_date} - {exp.current ? 'Present' : exp.end_date}
+                            </div>
+                          </div>
+                          {exp.description && (
+                            <p className="text-xs mb-1" style={{ color: '#001F3F' }}>{exp.description}</p>
+                          )}
+                          {exp.achievements && exp.achievements.length > 0 && (
+                            <ul className="list-disc list-inside text-xs space-y-1" style={{ color: '#001F3F' }}>
+                              {exp.achievements.map((achievement, i) => (
+                                <li key={i}>{achievement}</li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Education */}
+                  {resume?.education && resume.education.length > 0 && (
+                    <div className="mb-4">
+                      <div className="font-bold mb-2 pb-1 border-b-2" style={{ color: '#001F3F', borderColor: '#50C878' }}>
+                        EDUCATION
+                      </div>
+                      {resume.education.map((edu, idx) => (
+                        <div key={idx} className="mb-2">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <div className="font-bold text-xs" style={{ color: '#001F3F' }}>
+                                {edu.degree} {edu.field && `in ${edu.field}`}
+                              </div>
+                              <div className="text-xs" style={{ color: '#708090' }}>
+                                {edu.institution}
+                              </div>
+                            </div>
+                            <div className="text-xs whitespace-nowrap" style={{ color: '#708090' }}>
+                              {edu.start_date} - {edu.end_date}
+                            </div>
+                          </div>
+                          {edu.gpa && (
+                            <div className="text-xs" style={{ color: '#708090' }}>GPA: {edu.gpa}</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Skills */}
+                  {resume?.skills && resume.skills.length > 0 && (
+                    <div className="mb-4">
+                      <div className="font-bold mb-2 pb-1 border-b-2" style={{ color: '#001F3F', borderColor: '#50C878' }}>
+                        SKILLS
+                      </div>
+                      <div className="text-xs" style={{ color: '#001F3F' }}>
+                        {resume.skills.join(' • ')}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Empty State */}
+                  {(!resume?.personal_info?.full_name && !resume?.work_experience?.length && !resume?.education?.length && !resume?.skills?.length) && (
+                    <div className="text-center py-12" style={{ color: '#708090' }}>
+                      <FileText size={48} className="mx-auto mb-4" style={{ opacity: 0.3 }} />
+                      <p>Your resume preview will appear here as you add content</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Export Buttons */}
+                <div className="mt-4 flex gap-2">
+                  <button
+                    onClick={async () => {
+                      try {
+                        const response = await fetch(`${API}/resumes/${resumeId}/export/pdf`, {
+                          credentials: 'include',
+                        });
+                        if (!response.ok) throw new Error('Export failed');
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = `${resume.title || 'resume'}.pdf`;
+                        document.body.appendChild(link);
+                        link.click();
+                        link.remove();
+                      } catch (error) {
+                        console.error('Export error:', error);
+                        alert('Failed to export PDF');
+                      }
+                    }}
+                    data-testid="export-resume-button"
+                    className="btn-primary flex-1 flex items-center justify-center gap-2"
+                  >
+                    <DownloadSimple size={18} weight="bold" />
+                    Export PDF
+                  </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        const response = await fetch(`${API}/resumes/${resumeId}/export/word`, {
+                          credentials: 'include',
+                        });
+                        if (!response.ok) throw new Error('Export failed');
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = `${resume.title || 'resume'}.docx`;
+                        document.body.appendChild(link);
+                        link.click();
+                        link.remove();
+                      } catch (error) {
+                        console.error('Export error:', error);
+                        alert('Failed to export Word document');
+                      }
+                    }}
+                    data-testid="export-word-button"
+                    className="btn-secondary flex-1 flex items-center justify-center gap-2"
+                  >
+                    <DownloadSimple size={18} weight="bold" />
+                    Export Word
+                  </button>
+                </div>
               </div>
             </div>
           </div>
