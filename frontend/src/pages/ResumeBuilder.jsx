@@ -40,6 +40,7 @@ export const ResumeBuilder = () => {
   const fetchResume = async () => {
     try {
       const { data } = await axios.get(`${API}/resumes/${resumeId}`, { withCredentials: true });
+      console.log('Fetched resume data:', data); // Debug log
       setResume(data);
       setAtsScore(data.ats_score || 0);
     } catch (error) {
