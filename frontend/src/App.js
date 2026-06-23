@@ -15,6 +15,9 @@ import JobAdGenerator from "./pages/JobAdGenerator";
 import AdminDashboard from "./pages/AdminDashboard";
 import Pricing from "./pages/Pricing";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import CoverLetterGenerator from "./pages/CoverLetterGenerator";
+import AITools from "./pages/AITools";
+import Templates from "./pages/Templates";
 
 const GOOGLE_CLIENT_ID = "613554214488-v5qr5lt1efch2dg6hvm1ppik5485pv09.apps.googleusercontent.com";
 
@@ -75,6 +78,30 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/cover-letter"
+              element={
+                <ProtectedRoute>
+                  <CoverLetterGenerator />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/ai-tools"
+              element={
+                <ProtectedRoute>
+                  <AITools />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/templates"
+              element={
+                <ProtectedRoute>
+                  <Templates />
                 </ProtectedRoute>
               }
             />
