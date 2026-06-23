@@ -254,8 +254,8 @@ async def register(user: UserRegister, response: Response, request: Request):
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=False,
-        samesite="lax",
+        secure=True,
+        samesite="none",
         max_age=900,
         path="/"
     )
@@ -263,8 +263,8 @@ async def register(user: UserRegister, response: Response, request: Request):
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        secure=False,
-        samesite="lax",
+        secure=True,
+        samesite="none",
         max_age=604800,
         path="/"
     )
@@ -332,8 +332,8 @@ async def login(user: UserLogin, request: Request, response: Response):
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=False,
-        samesite="lax",
+        secure=True,
+        samesite="none",
         max_age=900,
         path="/"
     )
@@ -341,8 +341,8 @@ async def login(user: UserLogin, request: Request, response: Response):
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        secure=False,
-        samesite="lax",
+        secure=True,
+        samesite="none",
         max_age=604800,
         path="/"
     )
