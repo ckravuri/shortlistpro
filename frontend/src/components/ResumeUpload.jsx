@@ -26,14 +26,24 @@ export const ResumeUpload = () => {
     setError('');
 
     try {
-      const { data } = await axios.post(`${API}/resumes/upload`, formData, {
-        withCredentials: true,
-        headers: { 'Content-Type': 'multipart/form-data' }
+      // Use fetch instead of axios for better FormData + cookie handling
+      const response = await fetch(`${API}/resumes/upload`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include', // Important: send cookies
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Upload failed');
+      }
+
+      const data = await response.json();
       // Navigate to resume builder
       navigate(`/resume/${data.id}`);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to upload resume');
+      console.error('Upload error:', err);
+      setError(err.message || 'Failed to upload resume');
     } finally {
       setUploading(false);
     }

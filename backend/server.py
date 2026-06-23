@@ -912,6 +912,8 @@ async def convert_word_to_pdf(file: UploadFile = File(...), current_user: dict =
 @api_router.post("/resumes/upload")
 async def upload_resume(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
     """Upload and parse PDF/DOCX resume"""
+    logger.info(f"Resume upload attempt by user: {current_user.get('id', 'unknown')}")
+    
     if not file.filename:
         raise HTTPException(status_code=400, detail="No file uploaded")
     
@@ -920,6 +922,7 @@ async def upload_resume(file: UploadFile = File(...), current_user: dict = Depen
         raise HTTPException(status_code=400, detail="Only PDF and DOCX files are supported")
     
     file_bytes = await file.read()
+    logger.info(f"File received: {file.filename}, size: {len(file_bytes)} bytes")
     
     try:
         if file_ext == 'pdf':
@@ -969,7 +972,10 @@ async def upload_resume(file: UploadFile = File(...), current_user: dict = Depen
             "date": datetime.now(timezone.utc).isoformat()
         })
         
+        logger.info(f"Resume uploaded successfully: {resume_doc['id']}")
         return resume_doc
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Upload error: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to process file: {str(e)}")
