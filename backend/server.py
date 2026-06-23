@@ -897,6 +897,64 @@ Format as JSON:
         }
     )
 
+# ============ COVER LETTER GENERATOR ============
+class CoverLetterRequest(BaseModel):
+    fullName: str = ""
+    jobTitle: str
+    companyName: str
+    jobDescription: str = ""
+    skills: str = ""
+    experience: str = ""
+
+@api_router.post("/generate-cover-letter")
+@limiter.limit("15/hour")
+async def generate_cover_letter(request: CoverLetterRequest, current_user: dict = Depends(get_current_user), req: Request = None):
+    """Generate a professional cover letter"""
+    system_prompt = f"""You are an expert cover letter writer. Create professional, personalized cover letters that:
+- Highlight relevant experience and skills
+- Show enthusiasm for the role and company
+- Are concise (3-4 paragraphs)
+- Use professional language
+- Follow standard business letter format
+
+Region: {current_user.get('region', 'US')}
+"""
+    
+    user_prompt = f"""
+Create a professional cover letter for:
+
+Applicant: {request.fullName or 'the candidate'}
+Position: {request.jobTitle}
+Company: {request.companyName}
+{f'Skills: {request.skills}' if request.skills else ''}
+{f'Experience: {request.experience}' if request.experience else ''}
+{f'Job Description: {request.jobDescription}' if request.jobDescription else ''}
+
+Write a compelling cover letter that makes the candidate stand out.
+"""
+    
+    try:
+        chat = LlmChat(
+            api_key=os.environ["EMERGENT_LLM_KEY"],
+            session_id=f"coverletter_{current_user['id']}",
+            system_message=system_prompt
+        )
+        chat.with_model("gemini", "gemini-3.5-flash")
+        
+        message = UserMessage(text=user_prompt)
+        
+        accumulated = ""
+        async for event in chat.stream_message(message):
+            if isinstance(event, TextDelta):
+                accumulated += event.content
+            elif isinstance(event, StreamDone):
+                break
+        
+        return {"cover_letter": accumulated}
+    except Exception as e:
+        logging.error(f"Cover letter generation error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to generate cover letter")
+
 # ============ ADMIN DASHBOARD ============
 @api_router.get("/admin/stats")
 async def get_admin_stats(current_user: dict = Depends(get_current_user)):
