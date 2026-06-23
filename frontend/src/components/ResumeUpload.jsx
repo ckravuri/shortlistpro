@@ -167,41 +167,72 @@ export const ResumeUpload = () => {
         data-testid="resume-upload-input"
       />
       
-      {/* PDF to Word Converter */}
+      {/* File Converters */}
       {user && user.subscription_tier !== 'free' && (
         <div className="mt-6 pt-6 border-t" style={{ borderColor: '#E2E8F0' }}>
           <div className="flex items-center gap-2 mb-4">
             <ArrowsClockwise size={24} weight="bold" style={{ color: '#3B82F6' }} />
             <h3 className="text-lg font-medium" style={{ fontFamily: 'Outfit', color: '#001F3F' }}>
-              Convert PDF to Word
+              File Converters
             </h3>
             <span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: '#F59E0B15', color: '#F59E0B' }}>
               PRO
             </span>
           </div>
-          <p className="body-text-sm mb-4">
-            Upload a PDF resume and download it as an editable MS Word document.
-          </p>
           
-          <label htmlFor="pdf-convert" className="btn-secondary inline-flex items-center gap-2 cursor-pointer">
-            {converting ? (
-              'Converting...'
-            ) : (
-              <>
-                <FilePdf size={18} weight="bold" />
-                Convert PDF to Word
-              </>
-            )}
-          </label>
-          <input
-            id="pdf-convert"
-            type="file"
-            accept=".pdf"
-            onChange={handlePdfToWord}
-            disabled={converting}
-            className="hidden"
-            data-testid="pdf-convert-input"
-          />
+          <div className="space-y-4">
+            {/* PDF to Word */}
+            <div>
+              <p className="body-text-sm mb-2">
+                <strong>PDF → Word:</strong> Convert PDF resume to editable MS Word document
+              </p>
+              <label htmlFor="pdf-convert" className="btn-secondary inline-flex items-center gap-2 cursor-pointer">
+                {converting ? (
+                  'Converting...'
+                ) : (
+                  <>
+                    <FilePdf size={18} weight="bold" />
+                    PDF to Word
+                  </>
+                )}
+              </label>
+              <input
+                id="pdf-convert"
+                type="file"
+                accept=".pdf"
+                onChange={handlePdfToWord}
+                disabled={converting}
+                className="hidden"
+                data-testid="pdf-convert-input"
+              />
+            </div>
+
+            {/* Word to PDF */}
+            <div>
+              <p className="body-text-sm mb-2">
+                <strong>Word → PDF:</strong> Convert Word document to PDF format
+              </p>
+              <label htmlFor="word-convert" className="btn-secondary inline-flex items-center gap-2 cursor-pointer">
+                {convertingToPdf ? (
+                  'Converting...'
+                ) : (
+                  <>
+                    <FileText size={18} weight="bold" />
+                    Word to PDF
+                  </>
+                )}
+              </label>
+              <input
+                id="word-convert"
+                type="file"
+                accept=".docx,.doc"
+                onChange={handleWordToPdf}
+                disabled={convertingToPdf}
+                className="hidden"
+                data-testid="word-convert-input"
+              />
+            </div>
+          </div>
         </div>
       )}
       

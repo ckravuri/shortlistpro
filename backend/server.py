@@ -191,22 +191,25 @@ async def startup_event():
             "name": "Admin",
             "region": "US",
             "role": "admin",
-            "subscription_tier": "pro+",
+            "subscription_tier": "pro+",  # Pro+ for full testing
             "created_at": datetime.now(timezone.utc).isoformat()
         })
         logger.info(f"Admin user created: {admin_email}")
-    elif not verify_password(admin_password, existing["password_hash"]):
-        # Update password and ensure id field exists
-        update_doc = {"password_hash": hash_password(admin_password)}
+    else:
+        # Update to Pro+ if needed
+        update_doc = {}
+        if not verify_password(admin_password, existing["password_hash"]):
+            update_doc["password_hash"] = hash_password(admin_password)
         if "id" not in existing:
             update_doc["id"] = str(uuid.uuid4())
-        if "subscription_tier" not in existing:
+        if existing.get("subscription_tier") != "pro+":
             update_doc["subscription_tier"] = "pro+"
-        await db.users.update_one(
-            {"email": admin_email},
-            {"$set": update_doc}
-        )
-        logger.info("Admin password updated")
+        if update_doc:
+            await db.users.update_one(
+                {"email": admin_email},
+                {"$set": update_doc}
+            )
+            logger.info("Admin user updated to Pro+")
     
     # Write test credentials
     Path("/app/memory").mkdir(exist_ok=True)
