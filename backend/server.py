@@ -503,7 +503,8 @@ async def create_resume(resume: ResumeCreate, current_user: dict = Depends(get_c
 
 @api_router.get("/resumes")
 async def get_resumes(current_user: dict = Depends(get_current_user)):
-    resumes = await db.resumes.find({"user_id": current_user["id"]}, {"_id": 0}).to_list(1000)
+    # Don't exclude _id, we need it to create the id field
+    resumes = await db.resumes.find({"user_id": current_user["id"]}).to_list(1000)
     for resume in resumes:
         if "_id" in resume:
             resume["id"] = str(resume["_id"])
@@ -559,10 +560,28 @@ async def update_resume(resume_id: str, update: ResumeUpdate, current_user: dict
 
 @api_router.delete("/resumes/{resume_id}")
 async def delete_resume(resume_id: str, current_user: dict = Depends(get_current_user)):
-    result = await db.resumes.delete_one({"user_id": current_user["id"], "_id": ObjectId(resume_id)})
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Resume not found")
-    return {"message": "Resume deleted successfully"}
+    """Delete a resume"""
+    logger.info(f"Delete request for resume {resume_id} by user {current_user.get('id')}")
+    
+    try:
+        # Delete using the ObjectId for MongoDB
+        result = await db.resumes.delete_one({
+            "user_id": current_user["id"],
+            "_id": ObjectId(resume_id)
+        })
+        
+        if result.deleted_count == 0:
+            logger.warning(f"Resume {resume_id} not found or not owned by user")
+            raise HTTPException(status_code=404, detail="Resume not found")
+        
+        # Also delete associated score history
+        await db.score_history.delete_many({"resume_id": resume_id})
+        
+        logger.info(f"Successfully deleted resume {resume_id}")
+        return {"message": "Resume deleted successfully"}
+    except Exception as e:
+        logger.error(f"Error deleting resume {resume_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete resume: {str(e)}")
 
 # ============ AI SUGGESTION (Streaming) ============
 @api_router.post("/resumes/{resume_id}/ai-suggest")
@@ -792,18 +811,29 @@ async def convert_pdf_to_word(file: UploadFile = File(...), current_user: dict =
         from docx import Document
         from docx.shared import Pt
         import fitz  # PyMuPDF
+        from io import BytesIO
         
         # Read and extract text from PDF
         file_bytes = await file.read()
+        logger.info(f"PDF to Word: Processing file {file.filename}, size: {len(file_bytes)} bytes")
+        
         pdf_document = fitz.open(stream=file_bytes, filetype="pdf")
+        logger.info(f"PDF opened successfully, {len(pdf_document)} pages")
         
         # Create Word document
         doc = Document()
+        
+        # Track if any content was added
+        content_added = False
         
         # Extract text from each page and add to Word
         for page_num in range(len(pdf_document)):
             page = pdf_document[page_num]
             text = page.get_text()
+            
+            if text.strip():
+                content_added = True
+                logger.info(f"Page {page_num + 1}: Extracted {len(text)} characters")
             
             # Split into paragraphs and add to Word
             paragraphs = text.split('\n')
@@ -817,11 +847,17 @@ async def convert_pdf_to_word(file: UploadFile = File(...), current_user: dict =
         
         pdf_document.close()
         
+        if not content_added:
+            logger.warning("No text content extracted from PDF")
+            raise HTTPException(status_code=400, detail="The PDF appears to be empty or contains only images. Please upload a text-based PDF.")
+        
         # Save to bytes
-        from io import BytesIO
         docx_bytes = BytesIO()
         doc.save(docx_bytes)
         docx_bytes.seek(0)
+        
+        output_size = len(docx_bytes.getvalue())
+        logger.info(f"Word document created successfully, size: {output_size} bytes")
         
         original_name = file.filename.rsplit('.', 1)[0]
         return Response(
@@ -831,8 +867,10 @@ async def convert_pdf_to_word(file: UploadFile = File(...), current_user: dict =
                 "Content-Disposition": f"attachment; filename={original_name}.docx"
             }
         )
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"PDF to Word conversion error: {e}")
+        logger.error(f"PDF to Word conversion error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to convert PDF to Word: {str(e)}")
 
 @api_router.post("/convert-word-to-pdf")
@@ -857,10 +895,14 @@ async def convert_word_to_pdf(file: UploadFile = File(...), current_user: dict =
         from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
         from reportlab.lib.units import inch
+        from xml.sax.saxutils import escape
         
         # Read Word document
         file_bytes = await file.read()
+        logger.info(f"Word to PDF: Processing file {file.filename}, size: {len(file_bytes)} bytes")
+        
         doc = Document(BytesIO(file_bytes))
+        logger.info(f"Word document opened, {len(doc.paragraphs)} paragraphs")
         
         # Create PDF
         pdf_buffer = BytesIO()
@@ -873,24 +915,42 @@ async def convert_word_to_pdf(file: UploadFile = File(...), current_user: dict =
             'CustomTitle',
             parent=styles['Heading1'],
             fontSize=16,
-            textColor='#001F3F',
             spaceAfter=12
         )
         normal_style = styles['Normal']
         
+        # Track if any content was added
+        content_added = False
+        
         # Extract and convert content
         for para in doc.paragraphs:
             if para.text.strip():
-                # Check if it's a heading (based on font size or style)
-                if para.style.name.startswith('Heading'):
-                    story.append(Paragraph(para.text, title_style))
-                else:
-                    story.append(Paragraph(para.text, normal_style))
-                story.append(Spacer(1, 0.1*inch))
+                content_added = True
+                # Escape special XML characters that break ReportLab
+                safe_text = escape(para.text)
+                
+                try:
+                    # Check if it's a heading (based on style name)
+                    if para.style.name.startswith('Heading'):
+                        story.append(Paragraph(safe_text, title_style))
+                    else:
+                        story.append(Paragraph(safe_text, normal_style))
+                    story.append(Spacer(1, 0.1*inch))
+                except Exception as para_error:
+                    # If Paragraph fails, log and skip
+                    logger.warning(f"Skipping paragraph due to error: {para_error}")
+                    continue
+        
+        if not content_added:
+            logger.warning("No text content found in Word document")
+            raise HTTPException(status_code=400, detail="The Word document appears to be empty.")
         
         # Build PDF
         pdf_doc.build(story)
         pdf_buffer.seek(0)
+        
+        output_size = len(pdf_buffer.getvalue())
+        logger.info(f"PDF created successfully, size: {output_size} bytes")
         
         original_name = file.filename.rsplit('.', 1)[0]
         return Response(
@@ -900,8 +960,10 @@ async def convert_word_to_pdf(file: UploadFile = File(...), current_user: dict =
                 "Content-Disposition": f"attachment; filename={original_name}.pdf"
             }
         )
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Word to PDF conversion error: {e}")
+        logger.error(f"Word to PDF conversion error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to convert Word to PDF: {str(e)}")
 
 # ============ FILE UPLOAD & PARSING ============
