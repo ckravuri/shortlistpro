@@ -58,10 +58,13 @@ def extract_resume_data(text: str) -> Dict:
     if email_match:
         data["email"] = email_match.group()
     
-    # Extract phone
-    phone_match = re.search(r'[\+\(]?[0-9][0-9 .\-\(\)]{8,}[0-9]', text)
+    # Extract phone - but avoid matching years (4 digits)
+    phone_match = re.search(r'[\+\(]?[0-9][0-9 .\-\(\)]{8,}[0-9](?!\s*[-–—]\s*\d{4})', text)
     if phone_match:
-        data["phone"] = phone_match.group().strip()
+        phone_candidate = phone_match.group().strip()
+        # Verify it's not a year range
+        if not re.match(r'^\d{4}$', phone_candidate.replace(' ', '').replace('-', '')):
+            data["phone"] = phone_candidate
     
     # Extract LinkedIn
     linkedin_match = re.search(r'linkedin\.com/in/[a-zA-Z0-9\-]+', text, re.IGNORECASE)
@@ -73,18 +76,24 @@ def extract_resume_data(text: str) -> Dict:
         line = line.strip()
         if len(line) > 3 and len(line) < 50 and line[0].isupper() and '@' not in line and not re.match(r'^[0-9\+\(]', line):
             # Skip common header words
-            if not any(word in line.lower() for word in ['resume', 'curriculum', 'vitae', 'cv', 'profile']):
+            if not any(word in line.lower() for word in ['resume', 'curriculum', 'vitae', 'cv', 'profile', 'skills', 'experience', 'education']):
                 data["full_name"] = line
                 break
     
-    # Extract location (look for city, state/country patterns)
-    location_match = re.search(r'([A-Z][a-zA-Z\s]+,\s*[A-Z]{2}(?:\s+\d{5})?)|([A-Z][a-zA-Z\s]+,\s*[A-Z][a-zA-Z\s]+)', text)
+    # Extract location (look for city, state/country patterns) - before sections
+    location_pattern = r'([A-Z][a-zA-Z\s]+,\s*[A-Z]{2}(?:\s+\d{5})?)|([A-Z][a-zA-Z\s]+,\s*[A-Z][a-zA-Z\s]+)'
+    # Only search in first 15 lines to avoid getting location from work experience
+    header_text = '\n'.join(lines[:15])
+    location_match = re.search(location_pattern, header_text)
     if location_match:
-        data["location"] = location_match.group().strip()
+        location_candidate = location_match.group().strip()
+        # Make sure it's not part of a section header
+        if not re.search(r'(EXPERIENCE|EDUCATION|SKILLS|SUMMARY)', location_candidate, re.IGNORECASE):
+            data["location"] = location_candidate
     
-    # Extract Skills section
+    # Extract Skills section - limit to just the skills section
     skills_section = re.search(
-        r'(?:SKILLS?|TECHNICAL SKILLS?|COMPETENCIES|CORE COMPETENCIES|EXPERTISE)[:\s]*\n([^\n]+(?:\n(?![A-Z\s]{3,}:)[^\n]+)*)',
+        r'(?:SKILLS?|TECHNICAL SKILLS?|COMPETENCIES|CORE COMPETENCIES|EXPERTISE)[:\s]*\n(.*?)(?=\n\s*(?:[A-Z]{3,}(?:\s+[A-Z]{3,})*|$))',
         text,
         re.IGNORECASE | re.MULTILINE
     )
@@ -94,14 +103,16 @@ def extract_resume_data(text: str) -> Dict:
         skills = re.split(r'[,;•\|●◆▪]|\n', skills_text)
         data["skills"] = [s.strip() for s in skills if s.strip() and len(s.strip()) > 2 and len(s.strip()) < 100][:20]
     
-    # Extract Professional Summary
+    # Extract Professional Summary - limited to summary section only
     summary_section = re.search(
-        r'(?:PROFESSIONAL SUMMARY|SUMMARY|PROFILE|OBJECTIVE|CAREER SUMMARY)[:\s]*\n([^\n]+(?:\n(?![A-Z\s]{3,}:)[^\n]+)*)',
+        r'(?:PROFESSIONAL SUMMARY|SUMMARY|PROFILE|OBJECTIVE|CAREER SUMMARY)[:\s]*\n(.*?)(?=\n\s*(?:[A-Z]{3,}(?:\s+[A-Z]{3,})*|$))',
         text,
         re.IGNORECASE | re.MULTILINE
     )
     if summary_section:
-        data["summary"] = summary_section.group(1).strip()[:500]
+        summary_text = summary_section.group(1).strip()
+        # Limit to reasonable summary length
+        data["summary"] = summary_text[:500]
     
     # Extract Work Experience
     work_exp = extract_work_experience(text)
@@ -121,7 +132,7 @@ def extract_work_experience(text: str) -> List[Dict]:
     
     # Find work experience section
     work_section_match = re.search(
-        r'(?:WORK EXPERIENCE|PROFESSIONAL EXPERIENCE|EXPERIENCE|EMPLOYMENT HISTORY|CAREER HISTORY)[:\s]*\n(.*?)(?=\n(?:EDUCATION|SKILLS|CERTIFICATIONS|PROJECTS|$))',
+        r'(?:WORK EXPERIENCE|PROFESSIONAL EXPERIENCE|EXPERIENCE|EMPLOYMENT HISTORY|CAREER HISTORY)[:\s]*\n(.*?)(?=\n\s*(?:EDUCATION|SKILLS|CERTIFICATIONS|PROJECTS|VOLUNTEER|AWARDS|REFERENCES|$))',
         text,
         re.IGNORECASE | re.DOTALL
     )
@@ -132,7 +143,7 @@ def extract_work_experience(text: str) -> List[Dict]:
     work_section = work_section_match.group(1)
     
     # Split by date patterns to identify individual jobs
-    date_pattern = r'([A-Za-z]+\s+\d{4}\s*[-–—to]*\s*(?:[A-Za-z]+\s+\d{4}|Present|Current))'
+    date_pattern = r'([A-Za-z]+\s+\d{4}\s*[-–—to\s]+\s*(?:[A-Za-z]+\s+\d{4}|Present|Current))'
     
     # Find all date ranges
     dates = list(re.finditer(date_pattern, work_section))
@@ -149,25 +160,52 @@ def extract_work_experience(text: str) -> List[Dict]:
             desc_end = dates[i+1].start() if i < len(dates)-1 else len(work_section)
             description_text = work_section[desc_start:desc_end].strip()
             
+            # Skip if this looks like a bullet point (starts with - or •)
+            if header_text.strip().startswith(('-', '•', '●', '▪', '◆')):
+                continue
+            
             # Parse header (position, company, location)
-            header_lines = [line.strip() for line in header_text.split('\n') if line.strip()]
+            header_lines = [line.strip() for line in header_text.split('\n') if line.strip() and not line.strip().startswith(('-', '•', '●', '▪', '◆'))]
             
-            position = header_lines[0] if len(header_lines) > 0 else ""
-            company = header_lines[1] if len(header_lines) > 1 else ""
-            location = header_lines[2] if len(header_lines) > 2 else ""
+            position = ""
+            company = ""
+            location = ""
             
-            # Parse dates
-            date_str = date_match.group(1)
-            dates_parts = re.split(r'[-–—to]+', date_str.strip())
-            start_date = dates_parts[0].strip() if len(dates_parts) > 0 else ""
-            end_date = dates_parts[1].strip() if len(dates_parts) > 1 else "Present"
+            if len(header_lines) > 0:
+                # Check if first line has | or – delimiter (Position | Company)
+                first_line = header_lines[0]
+                if '|' in first_line:
+                    parts = first_line.split('|')
+                    position = parts[0].strip() if len(parts) > 0 else ""
+                    company = parts[1].strip() if len(parts) > 1 else ""
+                elif ' – ' in first_line or ' - ' in first_line:
+                    # Try splitting on dash
+                    parts = re.split(r'\s+[-–—]\s+', first_line)
+                    position = parts[0].strip() if len(parts) > 0 else ""
+                    company = parts[1].strip() if len(parts) > 1 else ""
+                else:
+                    position = first_line
+                    
+            if len(header_lines) > 1 and not company:
+                company = header_lines[1]
+            if len(header_lines) > 2:
+                location = header_lines[2]
             
-            # Clean description (take first 300 chars)
-            description = description_text[:300] if description_text else ""
+            # Parse dates - fix truncation issue
+            date_str = date_match.group(1).strip()
+            # Split on dash/to but not on spaces within words
+            dates_parts = re.split(r'\s*[-–—]\s*(?:to\s+)?|\s+to\s+', date_str)
+            dates_parts = [d.strip() for d in dates_parts if d.strip()]
+            start_date = dates_parts[0] if len(dates_parts) > 0 else ""
+            end_date = dates_parts[-1] if len(dates_parts) > 1 else "Present"
+            
+            # Clean description (take first 300 chars of non-bullet text)
+            desc_lines = [line for line in description_text.split('\n') if line.strip() and not line.strip().startswith(('-', '•', '●', '▪', '◆'))]
+            description = ' '.join(desc_lines)[:300] if desc_lines else ""
             
             # Extract bullet points from description
             achievements = re.findall(r'[•●▪◆\-]\s*(.+)', description_text)
-            achievements = [a.strip() for a in achievements if a.strip()][:5]
+            achievements = [a.strip() for a in achievements if a.strip() and len(a.strip()) > 10][:5]
             
             work_experience.append({
                 "id": str(len(work_experience) + 1),
@@ -193,7 +231,7 @@ def extract_education(text: str) -> List[Dict]:
     
     # Find education section
     edu_section_match = re.search(
-        r'(?:EDUCATION|ACADEMIC BACKGROUND|ACADEMIC QUALIFICATIONS)[:\s]*\n(.*?)(?=\n(?:EXPERIENCE|WORK|SKILLS|CERTIFICATIONS|PROJECTS|$))',
+        r'(?:EDUCATION|ACADEMIC BACKGROUND|ACADEMIC QUALIFICATIONS)[:\s]*\n(.*?)(?=\n\s*(?:EXPERIENCE|WORK|SKILLS|CERTIFICATIONS|PROJECTS|VOLUNTEER|AWARDS|REFERENCES|$))',
         text,
         re.IGNORECASE | re.DOTALL
     )
@@ -225,16 +263,31 @@ def extract_education(text: str) -> List[Dict]:
             institution = lines[0] if len(lines) > 0 else ""
             
             # Look for dates (4-digit years)
-            date_match = re.search(r'(\d{4})\s*[-–—to]*\s*(\d{4}|Present|Current)?', rest_text)
+            date_match = re.search(r'(\d{4})\s*[-–—to\s]+\s*(\d{4}|Present|Current)?', rest_text)
             start_date = ""
             end_date = ""
             if date_match:
                 start_date = date_match.group(1)
                 end_date = date_match.group(2) if date_match.group(2) else ""
             
-            # Extract field of study from degree
-            field_match = re.search(r'(?:in|of)\s+([A-Za-z\s&,]+)', degree)
-            field = field_match.group(1).strip() if field_match else ""
+            # Extract field of study from degree - improved logic to avoid duplication
+            field = ""
+            # Look for "in [Field]" pattern - match the LAST occurrence to avoid "of Science in CS" duplication
+            field_matches = list(re.finditer(r'(?:in)\s+([A-Za-z\s&,]+?)(?:\s*$|\s+(?:from|at|,))', degree, re.IGNORECASE))
+            if field_matches:
+                # Take the last match (e.g., "in Computer Science" not "of Science")
+                field = field_matches[-1].group(1).strip()
+            elif 'of' in degree.lower():
+                # Try "of [Field]" but be more careful
+                of_matches = list(re.finditer(r'(?:of)\s+([A-Za-z\s&,]+?)(?:\s*$|\s+(?:from|at|,|in))', degree, re.IGNORECASE))
+                if of_matches:
+                    # Get the match closest to the end that's not followed by "in"
+                    for match in reversed(of_matches):
+                        candidate = match.group(1).strip()
+                        # Avoid "Science" if followed by "in"
+                        if 'science' not in candidate.lower() or len(candidate.split()) > 1:
+                            field = candidate
+                            break
             
             # Look for GPA
             gpa_match = re.search(r'GPA[:\s]+([0-9.]+)', rest_text, re.IGNORECASE)

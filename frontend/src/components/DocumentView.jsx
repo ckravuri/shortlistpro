@@ -157,10 +157,17 @@ export const DocumentView = ({ resume, resumeId, onEdit }) => {
                     <h3 className="text-lg font-bold" style={{ color: '#001F3F' }}>
                       {exp.position || 'Position Title'}
                     </h3>
-                    <div className="text-base font-semibold" style={{ color: '#708090' }}>
-                      {exp.company || 'Company Name'}
-                      {exp.location && ` • ${exp.location}`}
-                    </div>
+                    {exp.company && (
+                      <div className="text-base font-semibold" style={{ color: '#708090' }}>
+                        {exp.company}
+                        {exp.location && ` • ${exp.location}`}
+                      </div>
+                    )}
+                    {!exp.company && exp.location && (
+                      <div className="text-base font-semibold" style={{ color: '#708090' }}>
+                        {exp.location}
+                      </div>
+                    )}
                   </div>
                   <div className="text-sm" style={{ color: '#708090' }}>
                     {exp.start_date} - {exp.current ? 'Present' : exp.end_date}
