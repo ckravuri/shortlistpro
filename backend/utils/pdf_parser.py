@@ -91,14 +91,17 @@ def extract_resume_data(text: str) -> Dict:
         if not re.search(r'(EXPERIENCE|EDUCATION|SKILLS|SUMMARY)', location_candidate, re.IGNORECASE):
             data["location"] = location_candidate
     
-    # Extract Skills section - limit to just the skills section
+    # Extract Skills section - improved regex to be less strict
     skills_section = re.search(
-        r'(?:SKILLS?|TECHNICAL SKILLS?|COMPETENCIES|CORE COMPETENCIES|EXPERTISE)[:\s]*\n(.*?)(?=\n\s*(?:[A-Z]{3,}(?:\s+[A-Z]{3,})*|$))',
+        r'(?:SKILLS?|TECHNICAL SKILLS?|COMPETENCIES|CORE COMPETENCIES|EXPERTISE)[:\s]*\n(.*?)(?=\n\s*[A-Z][A-Z\s]{8,}:|\n\s*$|$)',
         text,
-        re.IGNORECASE | re.MULTILINE
+        re.IGNORECASE | re.DOTALL
     )
     if skills_section:
-        skills_text = skills_section.group(1)
+        skills_text = skills_section.group(1).strip()
+        # Take only first few lines (up to 5) to avoid grabbing next section
+        skills_lines = skills_text.split('\n')[:5]
+        skills_text = '\n'.join(skills_lines)
         # Split by common delimiters and clean
         skills = re.split(r'[,;•\|●◆▪]|\n', skills_text)
         data["skills"] = [s.strip() for s in skills if s.strip() and len(s.strip()) > 2 and len(s.strip()) < 100][:20]
@@ -143,29 +146,61 @@ def extract_work_experience(text: str) -> List[Dict]:
     work_section = work_section_match.group(1)
     
     # Split by date patterns to identify individual jobs
-    date_pattern = r'([A-Za-z]+\s+\d{4}\s*[-–—to\s]+\s*(?:[A-Za-z]+\s+\d{4}|Present|Current))'
+    # More flexible pattern to catch various date formats
+    date_pattern = r'([A-Za-z]+\s+\d{4}\s*[-–—to\s]+\s*(?:[A-Za-z]+\s+\d{4}|Present|Current|present|current))'
     
     # Find all date ranges
     dates = list(re.finditer(date_pattern, work_section))
     
+    if not dates:
+        return work_experience
+    
     for i, date_match in enumerate(dates):
         try:
             # Get text before this date (job title, company, location)
-            start_pos = dates[i-1].end() if i > 0 else 0
+            if i > 0:
+                # For subsequent jobs, start from after previous job's description
+                start_pos = dates[i-1].end()
+            else:
+                start_pos = 0
+                
             end_pos = date_match.start()
             header_text = work_section[start_pos:end_pos].strip()
             
             # Get text after this date until next date (description)
             desc_start = date_match.end()
-            desc_end = dates[i+1].start() if i < len(dates)-1 else len(work_section)
-            description_text = work_section[desc_start:desc_end].strip()
+            if i < len(dates) - 1:
+                # Stop before the next job's header
+                # Find the line before the next date
+                next_date_start = dates[i+1].start()
+                # Walk backwards from next_date_start to find where description ends
+                temp_text = work_section[desc_start:next_date_start]
+                lines = temp_text.split('\n')
+                
+                # Remove the last non-empty line (which is likely the next job's header)
+                filtered_lines = []
+                for j, line in enumerate(lines):
+                    # Check if this might be next job's header (has | or is last line before date)
+                    if j == len(lines) - 1 or (j == len(lines) - 2 and not lines[-1].strip()):
+                        # This is likely the next job header, skip it
+                        if '|' in line and not line.strip().startswith(('-', '•', '●', '▪', '◆')):
+                            break
+                    filtered_lines.append(line)
+                
+                description_text = '\n'.join(filtered_lines).strip()
+            else:
+                desc_end = len(work_section)
+                description_text = work_section[desc_start:desc_end].strip()
             
-            # Skip if this looks like a bullet point (starts with - or •)
+            # Skip if header looks like a bullet point
             if header_text.strip().startswith(('-', '•', '●', '▪', '◆')):
                 continue
             
             # Parse header (position, company, location)
             header_lines = [line.strip() for line in header_text.split('\n') if line.strip() and not line.strip().startswith(('-', '•', '●', '▪', '◆'))]
+            
+            # Filter out lines that are clearly part of previous job
+            header_lines = [line for line in header_lines if line and (i == 0 or not re.match(r'^[-•●▪◆]\s', line))]
             
             position = ""
             company = ""
@@ -191,21 +226,22 @@ def extract_work_experience(text: str) -> List[Dict]:
             if len(header_lines) > 2:
                 location = header_lines[2]
             
-            # Parse dates - fix truncation issue
+            # Parse dates
             date_str = date_match.group(1).strip()
-            # Split on dash/to but not on spaces within words
             dates_parts = re.split(r'\s*[-–—]\s*(?:to\s+)?|\s+to\s+', date_str)
             dates_parts = [d.strip() for d in dates_parts if d.strip()]
             start_date = dates_parts[0] if len(dates_parts) > 0 else ""
             end_date = dates_parts[-1] if len(dates_parts) > 1 else "Present"
             
-            # Clean description (take first 300 chars of non-bullet text)
-            desc_lines = [line for line in description_text.split('\n') if line.strip() and not line.strip().startswith(('-', '•', '●', '▪', '◆'))]
-            description = ' '.join(desc_lines)[:300] if desc_lines else ""
+            # Clean description
+            desc_lines = [line for line in description_text.split('\n') if line.strip()]
+            # Filter out lines that look like next job header (contain |)
+            description_lines = [line for line in desc_lines if not line.strip().startswith(('-', '•', '●', '▪', '◆')) and '|' not in line]
+            description = ' '.join(description_lines)[:300] if description_lines else ""
             
-            # Extract bullet points from description
+            # Extract bullet points
             achievements = re.findall(r'[•●▪◆\-]\s*(.+)', description_text)
-            achievements = [a.strip() for a in achievements if a.strip() and len(a.strip()) > 10][:5]
+            achievements = [a.strip() for a in achievements if a.strip() and len(a.strip()) > 10 and '|' not in a][:5]
             
             work_experience.append({
                 "id": str(len(work_experience) + 1),
