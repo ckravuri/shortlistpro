@@ -11,8 +11,11 @@ import {
   Check,
   X,
   DownloadSimple,
+  Article,
+  ListBullets,
 } from '@phosphor-icons/react';
 import { ScoreHistory } from '../components/ScoreHistory';
+import { DocumentView } from '../components/DocumentView';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -32,6 +35,7 @@ export const ResumeBuilder = () => {
   const [aiContext, setAiContext] = useState({ field: '', context: '', current_text: '' });
   const [newSkill, setNewSkill] = useState('');
   const [showSkillInput, setShowSkillInput] = useState(false);
+  const [viewMode, setViewMode] = useState('document'); // 'document' or 'form'
 
   useEffect(() => {
     fetchResume();
@@ -268,6 +272,33 @@ export const ResumeBuilder = () => {
           </div>
           <div className="flex items-center gap-4">
             {saving && <span className="body-text-sm" style={{ color: '#708090' }}>Saving...</span>}
+            
+            {/* View Mode Toggle */}
+            <div className="flex border rounded-lg overflow-hidden" style={{ borderColor: '#E2E8F0' }}>
+              <button
+                onClick={() => setViewMode('document')}
+                className={`flex items-center gap-2 px-4 py-2 transition-colors ${
+                  viewMode === 'document' ? 'bg-primary text-white' : 'bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+                style={viewMode === 'document' ? { backgroundColor: '#50C878', color: '#FFFFFF' } : {}}
+                data-testid="document-view-toggle"
+              >
+                <Article size={18} weight="bold" />
+                <span className="text-sm font-medium">Document View</span>
+              </button>
+              <button
+                onClick={() => setViewMode('form')}
+                className={`flex items-center gap-2 px-4 py-2 transition-colors ${
+                  viewMode === 'form' ? 'bg-primary text-white' : 'bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+                style={viewMode === 'form' ? { backgroundColor: '#50C878', color: '#FFFFFF' } : {}}
+                data-testid="form-view-toggle"
+              >
+                <ListBullets size={18} weight="bold" />
+                <span className="text-sm font-medium">Form View</span>
+              </button>
+            </div>
+            
             {/* ATS Score */}
             <div className="flex items-center gap-2">
               <span className="body-text-sm" style={{ color: '#708090' }}>ATS Score:</span>
@@ -288,7 +319,16 @@ export const ResumeBuilder = () => {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="grid lg:grid-cols-3 gap-8">
+        {viewMode === 'document' ? (
+          /* Document View - MS Word Style */
+          <DocumentView 
+            resume={resume} 
+            resumeId={resumeId}
+            onEdit={(section) => setViewMode('form')}
+          />
+        ) : (
+          /* Form View - Original Layout */
+          <div className="grid lg:grid-cols-3 gap-8">
           {/* Main Form Column */}
           <div className="lg:col-span-2 space-y-8">
             {/* Personal Information */}
@@ -661,7 +701,7 @@ export const ResumeBuilder = () => {
 
               {resume.skills?.length === 0 && !showSkillInput && (
                 <p className="body-text-sm text-center py-4" style={{ color: '#708090' }}>
-                  No skills added yet. Click "Add Skill" to get started.
+                  No skills added yet. Click &quot;Add Skill&quot; to get started.
                 </p>
               )}
               <div className="flex flex-wrap gap-2">
@@ -937,6 +977,7 @@ export const ResumeBuilder = () => {
             </div>
           </div>
         </div>
+        )}
       </div>
 
       {/* AI Suggestion Modal */}
@@ -961,7 +1002,7 @@ export const ResumeBuilder = () => {
             {/* No-Fabrication Guardrail */}
             <div className="ai-guardrail-alert mb-4" data-testid="ai-guardrail-warning">
               <strong>No-Fabrication AI:</strong> Our AI never invents data. If specific metrics are missing,
-              we'll flag them for you to add.
+              we&apos;ll flag them for you to add.
             </div>
 
             <div

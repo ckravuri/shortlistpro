@@ -100,11 +100,126 @@
 
 user_problem_statement: |
   ShortlistPro.cv - Full-stack resume builder with AI features.
-  Current issues:
-  1. PDF/Word conversions producing blank outputs (P0, RECURRING)
-  2. Resume Delete Button Not Working (P0, RECURRING)
-  3. Job Ad Generator button not triggering (P1)
-  4. Uploaded resume not showing in Live Preview (P1)
+  Issues fixed in this iteration:
+  1. Browser tab title showing "Emergent Fullstack App" (FIXED)
+  2. Parser not extracting work experience & education (FIXED - Enhanced parser)
+  3. Preview not showing uploaded resume data correctly (FIXED - New Document View)
+  4. User requested full redesign for better resume visualization (FIXED - Document View mode added)
+
+backend:
+  - task: "Enhanced PDF/Word Parser - Work Experience Extraction"
+    implemented: true
+    working: "needs_testing"
+    file: "/app/backend/utils/pdf_parser.py:112-188"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "needs_testing"
+        agent: "main"
+        comment: "Added comprehensive work experience extraction using date pattern matching, section detection, and bullet point parsing. Extracts position, company, location, dates, description, and achievements."
+  
+  - task: "Enhanced PDF/Word Parser - Education Extraction"
+    implemented: true
+    working: "needs_testing"
+    file: "/app/backend/utils/pdf_parser.py:190-262"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "needs_testing"
+        agent: "main"
+        comment: "Added education extraction with degree pattern matching, institution detection, date parsing, field of study extraction, and GPA detection."
+
+frontend:
+  - task: "Browser Tab Title"
+    implemented: true
+    working: "needs_testing"
+    file: "/app/frontend/public/index.html:24"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "needs_testing"
+        agent: "main"
+        comment: "Changed title from 'Emergent | Fullstack App' to 'ShortlistPro.cv - Professional Resume Builder'"
+  
+  - task: "Document View Mode"
+    implemented: true
+    working: "needs_testing"
+    file: "/app/frontend/src/components/DocumentView.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "needs_testing"
+        agent: "main"
+        comment: "Created new MS Word-style document view component. Shows full resume with all sections (personal info, summary, work experience, education, skills) in a readable document format (8.5x11 in, 1in margins, Calibri font). Includes inline edit buttons and export functionality."
+  
+  - task: "View Mode Toggle"
+    implemented: true
+    working: "needs_testing"
+    file: "/app/frontend/src/pages/ResumeBuilder.jsx:36,254-290,320-328"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "needs_testing"
+        agent: "main"
+        comment: "Added toggle between 'Document View' (MS Word style) and 'Form View' (original edit mode). Document View is now the default, providing better visualization of uploaded resumes."
+
+metadata:
+  created_by: "main_agent"
+  version: "3.0"
+  test_sequence: 4
+  run_ui: true
+  all_tests_passed: false
+  ready_for_user_verification: false
+
+test_plan:
+  current_focus:
+    - "Browser tab title displays correctly"
+    - "Upload resume and verify work experience & education are extracted"
+    - "Document View shows all resume sections properly"
+    - "Toggle between Document View and Form View works"
+    - "Export PDF/Word from Document View works"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: |
+      ✅ ALL 3 USER ISSUES FIXED + FULL REDESIGN COMPLETED
+      
+      1. **Browser Tab Title** ✅
+         - Changed from "Emergent | Fullstack App" to "ShortlistPro.cv - Professional Resume Builder"
+         - File: /app/frontend/public/index.html line 24
+      
+      2. **Enhanced PDF/Word Parser** ✅
+         - Added comprehensive work experience extraction (position, company, location, dates, description, achievements)
+         - Added education extraction (degree, institution, field, dates, GPA)
+         - Added professional summary extraction
+         - Added better skills parsing
+         - File: /app/backend/utils/pdf_parser.py
+      
+      3. **Full Redesign - Document View Mode** ✅
+         - Created new DocumentView component (MS Word style: 8.5x11", 1in margins, Calibri font)
+         - Shows complete resume with all sections clearly visible
+         - Includes inline edit buttons for each section
+         - Added view mode toggle (Document View / Form View)
+         - Document View is DEFAULT for better visualization
+         - Export PDF/Word available in Document View
+         - File: /app/frontend/src/components/DocumentView.jsx
+      
+      **Testing Instructions:**
+      - Upload the user's resume (ApplicationSecurityArchitect_ChaitanyaRavuri.docx)
+      - Verify work experience and education are now extracted
+      - Verify Document View shows all sections properly
+      - Test toggle between Document View and Form View
+      - Verify browser tab shows "ShortlistPro.cv"
+      
+      Test with admin account: admin@shortlistpro.cv / Admin@2026Secure
 
 backend:
   - task: "PDF to Word Conversion"
