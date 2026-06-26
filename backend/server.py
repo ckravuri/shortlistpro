@@ -984,9 +984,9 @@ async def upload_resume(file: UploadFile = File(...), current_user: dict = Depen
     
     try:
         if file_ext == 'pdf':
-            parsed_data = parse_pdf_resume(file_bytes)
+            parsed_data = await parse_pdf_resume(file_bytes)
         else:
-            parsed_data = parse_docx_resume(file_bytes)
+            parsed_data = await parse_docx_resume(file_bytes)
         
         if 'error' in parsed_data:
             raise HTTPException(status_code=400, detail=parsed_data['error'])
