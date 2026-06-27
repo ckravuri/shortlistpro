@@ -79,9 +79,10 @@ export const DocumentView = ({ resume, resumeId, onEdit }) => {
 
       {/* Document Content - MS Word Style */}
       <div 
-        className="card"
+        className="card overflow-y-auto"
         style={{
           minHeight: '11in',
+          maxHeight: 'none',
           maxWidth: '8.5in',
           margin: '0 auto',
           padding: '1in',

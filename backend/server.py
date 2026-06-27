@@ -513,10 +513,11 @@ async def get_resumes(current_user: dict = Depends(get_current_user)):
 
 @api_router.get("/resumes/{resume_id}")
 async def get_resume(resume_id: str, current_user: dict = Depends(get_current_user)):
-    resume = await db.resumes.find_one({"user_id": current_user["id"], "_id": ObjectId(resume_id)}, {"_id": 0})
+    resume = await db.resumes.find_one({"user_id": current_user["id"], "_id": ObjectId(resume_id)})
     if not resume:
         raise HTTPException(status_code=404, detail="Resume not found")
-    resume["id"] = resume_id
+    resume["id"] = str(resume["_id"])
+    resume.pop("_id", None)
     return resume
 
 @api_router.put("/resumes/{resume_id}")

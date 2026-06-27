@@ -56,7 +56,7 @@ async def extract_resume_data_ai(text: str) -> Dict:
         prompt = f"""Extract structured information from the following resume text and return ONLY a valid JSON object with NO markdown formatting, NO code blocks, NO extra text.
 
 Resume text:
-{text[:8000]}
+{text[:20000]}
 
 Return a JSON object with this EXACT structure:
 {{
