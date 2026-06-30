@@ -370,10 +370,19 @@ export const Dashboard = () => {
             {resumes.map((resume) => (
               <div key={resume.id || resume._id} className="card" data-testid={`resume-card-${resume.id}`}>
                 <div className="flex items-start gap-4 mb-4">
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 overflow-hidden">
                     <h3 
-                      className="text-lg font-medium mb-1 truncate" 
-                      style={{ fontFamily: 'Outfit', color: '#001F3F' }}
+                      className="text-lg font-medium mb-1 line-clamp-3" 
+                      style={{ 
+                        fontFamily: 'Outfit', 
+                        color: '#001F3F',
+                        wordBreak: 'break-word',
+                        overflowWrap: 'break-word',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden'
+                      }}
                       title={resume.title}
                     >
                       {resume.title}
