@@ -35,6 +35,13 @@ export const ResumeUpload = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
+        
+        // Check if it's a subscription limit error
+        if (response.status === 403 && errorData.detail?.upgrade_required) {
+          const detail = errorData.detail;
+          throw new Error(`${detail.description}\n\nYou have ${detail.current_count}/${detail.limit} resumes.\n\nPlease upgrade to continue!`);
+        }
+        
         throw new Error(errorData.detail || 'Upload failed');
       }
 

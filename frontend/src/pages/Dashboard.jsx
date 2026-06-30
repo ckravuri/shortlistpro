@@ -73,6 +73,14 @@ export const Dashboard = () => {
       navigate(`/resume/${data.id}`);
     } catch (error) {
       console.error('Error creating resume:', error);
+      
+      // Check if it's a subscription limit error
+      if (error.response?.status === 403 && error.response?.data?.detail?.upgrade_required) {
+        const detail = error.response.data.detail;
+        alert(`${detail.description}\n\nCurrent: ${detail.current_count}/${detail.limit} resumes used.\n\nPlease upgrade your plan to continue.`);
+      } else {
+        alert('Error creating resume. Please try again.');
+      }
     }
   };
 

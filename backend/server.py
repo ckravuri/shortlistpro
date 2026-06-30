@@ -355,7 +355,8 @@ async def login(user: UserLogin, request: Request, response: Response):
         "email": user_doc["email"],
         "name": user_doc["name"],
         "region": user_doc.get("region", "US"),
-        "role": user_doc.get("role", "user")
+        "role": user_doc.get("role", "user"),
+        "subscription_tier": user_doc.get("subscription_tier", "free")
     }
 
 @api_router.get("/auth/me")
@@ -481,8 +482,57 @@ async def google_auth(request: Request, response: Response):
         raise HTTPException(status_code=500, detail="Authentication failed")
 
 # ============ RESUME ROUTES ============
+# Subscription tier limits
+SUBSCRIPTION_LIMITS = {
+    "free": {"resumes": 1, "ai_suggestions": 5},
+    "pro": {"resumes": 10, "ai_suggestions": 50},
+    "pro+": {"resumes": float('inf'), "ai_suggestions": float('inf')}  # Unlimited
+}
+
+async def check_resume_limit(user_id: str, subscription_tier: str):
+    """
+    Check if user has reached their resume limit based on subscription tier
+    Raises HTTPException if limit reached
+    """
+    tier = subscription_tier.lower() if subscription_tier else "free"
+    limit = SUBSCRIPTION_LIMITS.get(tier, SUBSCRIPTION_LIMITS["free"])["resumes"]
+    
+    # Count existing resumes
+    resume_count = await db.resumes.count_documents({"user_id": user_id})
+    
+    if resume_count >= limit:
+        if tier == "free":
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "message": "Resume limit reached",
+                    "description": f"You've reached your Free plan limit of {int(limit)} resume. Upgrade to Pro for 10 resumes or Pro+ for unlimited resumes!",
+                    "current_count": resume_count,
+                    "limit": int(limit),
+                    "tier": tier,
+                    "upgrade_required": True
+                }
+            )
+        else:
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "message": "Resume limit reached",
+                    "description": f"You've reached your {tier.title()} plan limit of {int(limit)} resumes. Upgrade to Pro+ for unlimited resumes!",
+                    "current_count": resume_count,
+                    "limit": int(limit),
+                    "tier": tier,
+                    "upgrade_required": True
+                }
+            )
+    
+    return True
+
 @api_router.post("/resumes")
 async def create_resume(resume: ResumeCreate, current_user: dict = Depends(get_current_user)):
+    # Check subscription limit before creating
+    await check_resume_limit(current_user["id"], current_user.get("subscription_tier", "free"))
+    
     resume_doc = {
         "user_id": current_user["id"],
         "title": resume.title,
@@ -972,6 +1022,9 @@ async def convert_word_to_pdf(file: UploadFile = File(...), current_user: dict =
 async def upload_resume(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
     """Upload and parse PDF/DOCX resume"""
     logger.info(f"Resume upload attempt by user: {current_user.get('id', 'unknown')}")
+    
+    # Check subscription limit before uploading
+    await check_resume_limit(current_user["id"], current_user.get("subscription_tier", "free"))
     
     if not file.filename:
         raise HTTPException(status_code=400, detail="No file uploaded")
