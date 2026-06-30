@@ -174,8 +174,29 @@ export const PrivacyPolicy = () => {
               <li><strong>Opt-Out:</strong> Unsubscribe from marketing communications</li>
               <li><strong>Object:</strong> Object to certain data processing activities</li>
             </ul>
-            <p className="mt-3">
-              To exercise these rights, please contact us at{' '}
+            
+            <div className="mt-4 p-4 rounded-lg border" style={{ backgroundColor: '#DBEAFE', borderColor: '#3B82F6' }}>
+              <h4 className="font-semibold mb-2" style={{ color: '#1E40AF' }}>
+                Self-Service Data Deletion
+              </h4>
+              <p style={{ color: '#1E3A8A' }}>
+                You can <strong>permanently delete your account and all associated data</strong> directly 
+                from your Dashboard without contacting us. Go to Dashboard → Scroll to &quot;Danger Zone&quot; → 
+                Click &quot;Delete My Account&quot;. This will immediately and permanently remove:
+              </p>
+              <ul className="list-disc ml-6 mt-2" style={{ color: '#1E3A8A' }}>
+                <li>All resumes and cover letters</li>
+                <li>All AI-generated content</li>
+                <li>Your personal information</li>
+                <li>Your subscription data</li>
+              </ul>
+              <p className="mt-2 text-sm" style={{ color: '#1E3A8A' }}>
+                <strong>Note:</strong> This action is irreversible. Data will be permanently deleted within 24 hours.
+              </p>
+            </div>
+
+            <p className="mt-4">
+              For other rights or assistance, please contact us at{' '}
               <a href="mailto:app.hrsupport@gmail.com" className="text-blue-600 hover:underline">
                 app.hrsupport@gmail.com
               </a>

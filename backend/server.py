@@ -1820,6 +1820,43 @@ async def create_portal_session(current_user: dict = Depends(get_current_user)):
         logger.error(f"Stripe portal error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.delete("/user/account")
+async def delete_user_account(current_user: dict = Depends(get_current_user)):
+    """
+    Permanently delete user account and all associated data.
+    This action is irreversible and complies with GDPR right to erasure.
+    """
+    try:
+        user_id = current_user["id"]
+        
+        # Delete all user's resumes
+        await db.resumes.delete_many({"user_id": user_id})
+        
+        # Delete all user's STAR entries
+        await db.star_entries.delete_many({"user_id": user_id})
+        
+        # Delete user account
+        result = await db.users.delete_one({"id": user_id})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        logger.info(f"User account deleted: {current_user['email']}")
+        
+        return {
+            "message": "Account and all associated data permanently deleted",
+            "deleted": {
+                "user": True,
+                "resumes": "all",
+                "data": "all"
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting user account: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete account")
+
 @api_router.post("/stripe-webhook")
 async def stripe_webhook(request: Request):
     """Handle Stripe webhooks for subscription events"""

@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
-import { FileText, Plus, Trash, PencilSimple, Sparkle, Camera, Target, Crown, CreditCard, ListBullets, TextAlignLeft, Stack } from '@phosphor-icons/react';
+import { FileText, Plus, Trash, PencilSimple, Sparkle, Camera, Target, Crown, CreditCard, ListBullets, TextAlignLeft, Stack, Warning } from '@phosphor-icons/react';
 import { ResumeUpload } from '../components/ResumeUpload';
 import AdSenseAd from '../components/AdSenseAd';
 import Navbar from '../components/Navbar';
 import UpgradeModal from '../components/UpgradeModal';
+import DeleteAccountModal from '../components/DeleteAccountModal';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -20,6 +21,7 @@ export const Dashboard = () => {
   const [subscriptionStatus, setSubscriptionStatus] = useState(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeInfo, setUpgradeInfo] = useState({ currentCount: 0, limit: 0 });
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -120,6 +122,26 @@ export const Dashboard = () => {
     if (score >= 70) return '#50C878';
     if (score >= 40) return '#F59E0B';
     return '#EF4444';
+  };
+
+  const handleDeleteAccount = async () => {
+    try {
+      const response = await fetch(`${API}/user/account`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete account');
+      }
+
+      // Logout and redirect to landing page
+      await logout();
+      navigate('/');
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      throw error; // Let modal handle the error
+    }
   };
 
   return (
@@ -394,6 +416,40 @@ export const Dashboard = () => {
         )}
       </div>
 
+      {/* Account Settings - Danger Zone */}
+      <div className="max-w-7xl mx-auto px-6 pb-12">
+        <div 
+          className="card border-2"
+          style={{ borderColor: '#FCA5A5' }}
+        >
+          <div className="flex items-start gap-4">
+            <div className="flex-shrink-0">
+              <Warning size={32} weight="fill" style={{ color: '#DC2626' }} />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-xl font-semibold mb-2" style={{ fontFamily: 'Outfit', color: '#991B1B' }}>
+                Danger Zone
+              </h3>
+              <p className="body-text mb-4" style={{ color: '#7F1D1D' }}>
+                Permanently delete your account and all associated data. This action cannot be undone.
+              </p>
+              <button
+                onClick={() => setShowDeleteModal(true)}
+                className="px-6 py-3 rounded-lg font-semibold transition-all flex items-center gap-2"
+                style={{
+                  backgroundColor: '#DC2626',
+                  color: '#FFFFFF',
+                  fontFamily: 'Outfit'
+                }}
+              >
+                <Trash size={20} weight="bold" />
+                Delete My Account
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Create Resume Modal */}
       {showCreateModal && (
         <div
@@ -444,6 +500,13 @@ export const Dashboard = () => {
         message="You've reached your Free plan limit"
         currentCount={upgradeInfo.currentCount}
         limit={upgradeInfo.limit}
+      />
+
+      {/* Delete Account Modal */}
+      <DeleteAccountModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDeleteAccount}
       />
     </div>
   );
