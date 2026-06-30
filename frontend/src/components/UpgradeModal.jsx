@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Crown, Check, Sparkles } from '@phosphor-icons/react';
+import { X, Crown, Check, Star } from '@phosphor-icons/react';
 import { useNavigate } from 'react-router-dom';
 
 export const UpgradeModal = ({ isOpen, onClose, message, currentCount, limit }) => {
@@ -135,7 +135,7 @@ export const UpgradeModal = ({ isOpen, onClose, message, currentCount, limit }) 
               className="w-full btn-primary py-4 text-lg font-semibold flex items-center justify-center gap-2"
               style={{ fontFamily: 'Outfit' }}
             >
-              <Sparkles size={24} weight="fill" />
+              <Star size={24} weight="fill" />
               Upgrade Now - Starting at $7.99/mo
             </button>
             <button
