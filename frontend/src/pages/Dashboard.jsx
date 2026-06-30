@@ -369,9 +369,13 @@ export const Dashboard = () => {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {resumes.map((resume) => (
               <div key={resume.id || resume._id} className="card" data-testid={`resume-card-${resume.id}`}>
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-medium mb-1" style={{ fontFamily: 'Outfit', color: '#001F3F' }}>
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="flex-1 min-w-0">
+                    <h3 
+                      className="text-lg font-medium mb-1 truncate" 
+                      style={{ fontFamily: 'Outfit', color: '#001F3F' }}
+                      title={resume.title}
+                    >
                       {resume.title}
                     </h3>
                     <p className="body-text-sm" style={{ color: '#708090' }}>
@@ -379,7 +383,7 @@ export const Dashboard = () => {
                     </p>
                   </div>
                   <div
-                    className="flex items-center justify-center rounded-full border-2 font-bold text-sm"
+                    className="flex items-center justify-center rounded-full border-2 font-bold text-sm flex-shrink-0"
                     style={{
                       borderColor: getATSColor(resume.ats_score || 0),
                       color: getATSColor(resume.ats_score || 0),
