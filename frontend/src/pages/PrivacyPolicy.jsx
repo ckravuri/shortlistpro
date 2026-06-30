@@ -176,8 +176,8 @@ export const PrivacyPolicy = () => {
             </ul>
             <p className="mt-3">
               To exercise these rights, please contact us at{' '}
-              <a href="mailto:privacy@shortlistpro.cv" className="text-blue-600 hover:underline">
-                privacy@shortlistpro.cv
+              <a href="mailto:app.hrsupport@gmail.com" className="text-blue-600 hover:underline">
+                app.hrsupport@gmail.com
               </a>
             </p>
           </section>
@@ -261,7 +261,7 @@ export const PrivacyPolicy = () => {
             </p>
             <div className="bg-white p-6 rounded-lg border" style={{ borderColor: '#E2E8F0' }}>
               <p className="font-semibold mb-2">ShortlistPro.cv Privacy Team</p>
-              <p>Email: <a href="mailto:privacy@shortlistpro.cv" className="text-blue-600 hover:underline">privacy@shortlistpro.cv</a></p>
+              <p>Email: <a href="mailto:app.hrsupport@gmail.com" className="text-blue-600 hover:underline">app.hrsupport@gmail.com</a></p>
               <p>Support: <a href="mailto:app.hrsupport@gmail.com" className="text-blue-600 hover:underline">app.hrsupport@gmail.com</a></p>
               <p className="mt-3 text-sm" style={{ color: '#64748B' }}>
                 We will respond to your inquiry within 30 days.
@@ -279,8 +279,8 @@ export const PrivacyPolicy = () => {
               (GDPR) and other applicable data protection laws. EU residents have specific rights
               regarding their personal data. For GDPR-related inquiries, please contact our Data
               Protection Officer at{' '}
-              <a href="mailto:dpo@shortlistpro.cv" className="text-blue-600 hover:underline">
-                dpo@shortlistpro.cv
+              <a href="mailto:app.hrsupport@gmail.com" className="text-blue-600 hover:underline">
+                app.hrsupport@gmail.com
               </a>
             </p>
           </section>
