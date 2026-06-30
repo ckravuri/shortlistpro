@@ -24,12 +24,29 @@ async def parse_pdf_resume(pdf_bytes: bytes) -> Dict:
 
 async def parse_docx_resume(docx_bytes: bytes) -> Dict:
     """
-    Parse resume from DOCX bytes
+    Parse resume from DOCX bytes - extracts from paragraphs, headers, and tables
     """
     try:
         from docx import Document
         doc = Document(io.BytesIO(docx_bytes))
+        
+        # Extract text from paragraphs
         text = "\n".join([para.text for para in doc.paragraphs])
+        
+        # Extract text from headers (many resumes have contact info in headers)
+        for section in doc.sections:
+            header = section.header
+            for para in header.paragraphs:
+                if para.text.strip():
+                    text = para.text + "\n" + text  # Prepend header text
+        
+        # Extract text from tables (some resumes use tables for layout)
+        for table in doc.tables:
+            for row in table.rows:
+                row_text = " | ".join([cell.text.strip() for cell in row.cells if cell.text.strip()])
+                if row_text:
+                    text += "\n" + row_text
+        
         return await extract_resume_data_ai(text)
     except Exception as e:
         return {"error": f"Failed to parse DOCX: {str(e)}"}
@@ -60,13 +77,13 @@ Resume text:
 
 Return a JSON object with this EXACT structure:
 {{
-  "full_name": "string",
-  "email": "string",
-  "phone": "string",
-  "location": "string (city, state/country)",
+  "full_name": "string (CRITICAL: Extract the person's full name - look at the very top of the resume, in headers, or near email/phone)",
+  "email": "string (CRITICAL: Extract email address - look for @ symbol, usually at top of resume)",
+  "phone": "string (CRITICAL: Extract phone number - look for digits, +, parentheses)",
+  "location": "string (Extract city, state/country - look near name/contact info)",
   "linkedin": "string (URL or username)",
   "website": "string",
-  "summary": "string (professional summary/objective)",
+  "summary": "string (professional summary/objective/profile)",
   "skills": ["skill1", "skill2", "skill3"],
   "work_experience": [
     {{
@@ -97,13 +114,16 @@ Return a JSON object with this EXACT structure:
 
 CRITICAL RULES:
 1. Return ONLY the JSON object, no markdown, no code blocks, no explanations
-2. If a field is not found, use empty string "" or empty array []
-3. Extract ALL work experiences and education entries
-4. For dates, normalize to "Month YYYY" format (e.g., "January 2020")
-5. For current positions, set end_date to "Present" and current to true
-6. Keep achievements concise (under 100 chars each)
-7. If work experience has bullet points, put them in achievements array
-8. Extract top 20 most relevant skills"""
+2. **IMPORTANT**: Look at the VERY BEGINNING of the resume text for full_name, email, phone, location
+3. The name is usually the FIRST thing in a resume, often in larger font or at the top
+4. Email contains @ symbol, phone contains numbers
+5. If a field is not found, use empty string "" or empty array []
+6. Extract ALL work experiences and education entries
+7. For dates, normalize to "Month YYYY" format (e.g., "January 2020")
+8. For current positions, set end_date to "Present" and current to true
+9. Keep achievements concise (under 100 chars each)
+10. If work experience has bullet points, put them in achievements array
+11. Extract top 20 most relevant skills"""
 
         user_message = UserMessage(text=prompt)
         
