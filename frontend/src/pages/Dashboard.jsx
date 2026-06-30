@@ -6,6 +6,7 @@ import { FileText, Plus, Trash, PencilSimple, Sparkle, Camera, Target, Crown, Cr
 import { ResumeUpload } from '../components/ResumeUpload';
 import AdSenseAd from '../components/AdSenseAd';
 import Navbar from '../components/Navbar';
+import UpgradeModal from '../components/UpgradeModal';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -17,6 +18,8 @@ export const Dashboard = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newResumeTitle, setNewResumeTitle] = useState('My Resume');
   const [subscriptionStatus, setSubscriptionStatus] = useState(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeInfo, setUpgradeInfo] = useState({ currentCount: 0, limit: 0 });
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -77,7 +80,11 @@ export const Dashboard = () => {
       // Check if it's a subscription limit error
       if (error.response?.status === 403 && error.response?.data?.detail?.upgrade_required) {
         const detail = error.response.data.detail;
-        alert(`${detail.description}\n\nCurrent: ${detail.current_count}/${detail.limit} resumes used.\n\nPlease upgrade your plan to continue.`);
+        setUpgradeInfo({
+          currentCount: detail.current_count,
+          limit: detail.limit
+        });
+        setShowUpgradeModal(true);
       } else {
         alert('Error creating resume. Please try again.');
       }
@@ -429,6 +436,15 @@ export const Dashboard = () => {
           </div>
         </div>
       )}
+
+      {/* Upgrade Modal */}
+      <UpgradeModal 
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        message="You've reached your Free plan limit"
+        currentCount={upgradeInfo.currentCount}
+        limit={upgradeInfo.limit}
+      />
     </div>
   );
 };

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 import { UploadSimple, FileText, FilePdf, ArrowsClockwise } from '@phosphor-icons/react';
+import UpgradeModal from './UpgradeModal';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -12,6 +13,8 @@ export const ResumeUpload = () => {
   const [converting, setConverting] = useState(false);
   const [convertingToPdf, setConvertingToPdf] = useState(false);
   const [error, setError] = useState('');
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeInfo, setUpgradeInfo] = useState({ currentCount: 0, limit: 0 });
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -39,7 +42,12 @@ export const ResumeUpload = () => {
         // Check if it's a subscription limit error
         if (response.status === 403 && errorData.detail?.upgrade_required) {
           const detail = errorData.detail;
-          throw new Error(`${detail.description}\n\nYou have ${detail.current_count}/${detail.limit} resumes.\n\nPlease upgrade to continue!`);
+          setUpgradeInfo({
+            currentCount: detail.current_count,
+            limit: detail.limit
+          });
+          setShowUpgradeModal(true);
+          return; // Don't throw error, just show modal
         }
         
         throw new Error(errorData.detail || 'Upload failed');
@@ -139,7 +147,7 @@ export const ResumeUpload = () => {
         </h3>
       </div>
       <p className="body-text-sm mb-4">
-        Upload your existing resume (PDF or DOCX) and we'll extract the information for you.
+        Upload your existing resume (PDF or DOCX) and we&apos;ll extract the information for you.
       </p>
       
       <label htmlFor="resume-upload" className="btn-primary inline-flex items-center gap-2 cursor-pointer">
@@ -240,6 +248,15 @@ export const ResumeUpload = () => {
           {error}
         </div>
       )}
+
+      {/* Upgrade Modal */}
+      <UpgradeModal 
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        message="You've reached your Free plan limit"
+        currentCount={upgradeInfo.currentCount}
+        limit={upgradeInfo.limit}
+      />
     </div>
   );
 };
