@@ -9,8 +9,25 @@ export const Landing = () => {
       <nav className="border-b" style={{ borderColor: '#E2E8F0', backgroundColor: '#FFFFFF' }}>
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <FileText size={32} weight="bold" style={{ color: '#001F3F' }} />
-            <span className="text-2xl font-semibold" style={{ fontFamily: 'Outfit', color: '#001F3F' }}>
+            <div style={{
+              background: 'linear-gradient(135deg, #001F3F 0%, #50C878 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              display: 'inline-block'
+            }}>
+              <FileText size={32} weight="bold" />
+            </div>
+            <span 
+              className="text-2xl font-semibold" 
+              style={{ 
+                fontFamily: 'Outfit',
+                background: 'linear-gradient(135deg, #001F3F 0%, #50C878 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+              }}
+            >
               ShortlistPro.cv
             </span>
           </div>
