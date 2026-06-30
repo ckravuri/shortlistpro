@@ -105,7 +105,7 @@ export const TermsOfService = () => {
               </p>
               <p>
                 <strong>Refund Policy:</strong> We offer a 7-day money-back guarantee for first-time subscribers. 
-                Contact support@shortlistpro.cv within 7 days of your initial purchase for a full refund.
+                Contact app.hrsupport@gmail.com within 7 days of your initial purchase for a full refund.
               </p>
               <p>
                 <strong>Price Changes:</strong> We reserve the right to change subscription prices with 30 days&apos; 
@@ -251,7 +251,7 @@ export const TermsOfService = () => {
             <div className="space-y-3 body-text" style={{ color: '#475569' }}>
               <p>
                 <strong>Informal Resolution:</strong> If you have a dispute, please contact us at 
-                support@shortlistpro.cv first to resolve it informally.
+                app.hrsupport@gmail.com first to resolve it informally.
               </p>
               <p>
                 <strong>Governing Law:</strong> These Terms are governed by the laws of [Your Jurisdiction], 
@@ -294,7 +294,7 @@ export const TermsOfService = () => {
                 If you have questions about these Terms, please contact us:
               </p>
               <ul className="space-y-2">
-                <li><strong>Email:</strong> support@shortlistpro.cv</li>
+                <li><strong>Email:</strong> app.hrsupport@gmail.com</li>
                 <li><strong>Website:</strong> https://shortlistpro.cv</li>
               </ul>
             </div>
