@@ -209,7 +209,7 @@ export const Landing = () => {
               </p>
             </div>
 
-            {/* 7-Day Guarantee */}
+            {/* Cancel Anytime */}
             <div className="card text-center">
               <div className="flex justify-center mb-4">
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -219,10 +219,10 @@ export const Landing = () => {
                 </svg>
               </div>
               <h4 className="font-semibold mb-2" style={{ fontFamily: 'Outfit', color: '#001F3F' }}>
-                7-Day Money Back
+                Cancel Anytime
               </h4>
               <p className="body-text-sm" style={{ color: '#64748B' }}>
-                100% refund guarantee on all subscriptions
+                No long-term commitments, cancel whenever you want
               </p>
             </div>
           </div>

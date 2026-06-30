@@ -146,11 +146,6 @@ export const UpgradeModal = ({ isOpen, onClose, message, currentCount, limit }) 
               Maybe Later
             </button>
           </div>
-
-          {/* Small print */}
-          <p className="text-center text-xs mt-4" style={{ color: '#94A3B8' }}>
-            7-day money-back guarantee • Cancel anytime
-          </p>
         </div>
       </div>
     </div>

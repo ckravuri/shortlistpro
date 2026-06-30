@@ -104,8 +104,9 @@ export const TermsOfService = () => {
                 effect at the end of the current billing period. No refunds for partial months.
               </p>
               <p>
-                <strong>Refund Policy:</strong> We offer a 7-day money-back guarantee for first-time subscribers. 
-                Contact app.hrsupport@gmail.com within 7 days of your initial purchase for a full refund.
+                <strong>No Refunds Policy:</strong> All subscription payments are final and non-refundable. 
+                By subscribing, you acknowledge that you will not be entitled to a refund for any reason, 
+                including early cancellation, dissatisfaction with the service, or unused subscription time.
               </p>
               <p>
                 <strong>Price Changes:</strong> We reserve the right to change subscription prices with 30 days&apos; 

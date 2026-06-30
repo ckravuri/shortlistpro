@@ -127,7 +127,7 @@ export const Pricing = () => {
             Choose Your <span style={{ color: '#50C878' }}>Plan</span>
           </h1>
           <p className="body-text text-lg max-w-2xl mx-auto">
-            Start with our free tier and upgrade anytime. All plans include our no-fabrication AI guarantee.
+            Start with our free tier and upgrade anytime. All plans include our no-fabrication AI and secure payment processing.
           </p>
           {user && (
             <div className="mt-4">
