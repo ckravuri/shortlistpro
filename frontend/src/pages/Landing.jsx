@@ -169,6 +169,13 @@ export const Landing = () => {
               >
                 Privacy Policy
               </Link>
+              <Link 
+                to="/terms" 
+                className="body-text-sm hover:opacity-70 transition-opacity"
+                style={{ color: '#001F3F' }}
+              >
+                Terms of Service
+              </Link>
               <a 
                 href="mailto:support@shortlistpro.cv" 
                 className="body-text-sm hover:opacity-70 transition-opacity"

@@ -15,12 +15,14 @@ import JobAdGenerator from "./pages/JobAdGenerator";
 import AdminDashboard from "./pages/AdminDashboard";
 import Pricing from "./pages/Pricing";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
 import CoverLetterGenerator from "./pages/CoverLetterGenerator";
 import AITools from "./pages/AITools";
 import Templates from "./pages/Templates";
 import BulletPointWriter from "./pages/BulletPointWriter";
 import SummaryGenerator from "./pages/SummaryGenerator";
 import SelectionCriteria from "./pages/SelectionCriteria";
+import CookieConsent from "./components/CookieConsent";
 
 const GOOGLE_CLIENT_ID = "613554214488-v5qr5lt1efch2dg6hvm1ppik5485pv09.apps.googleusercontent.com";
 
@@ -36,6 +38,7 @@ function App() {
               <Route path="/register" element={<Register />} />
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/terms" element={<TermsOfService />} />
               <Route
                 path="/dashboard"
                 element={
@@ -133,6 +136,7 @@ function App() {
               }
             />
           </Routes>
+          <CookieConsent />
         </AuthProvider>
       </BrowserRouter>
     </div>
