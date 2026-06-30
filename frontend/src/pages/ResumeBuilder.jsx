@@ -47,6 +47,15 @@ export const ResumeBuilder = () => {
       console.log('Fetched resume data:', data); // Debug log
       setResume(data);
       setAtsScore(data.ats_score || 0);
+      
+      // If resume has content (especially from upload/template), default to form view for editing
+      const hasContent = data.personal_info?.full_name || 
+                        data.work_experience?.length > 0 || 
+                        data.education?.length > 0 ||
+                        data.skills?.length > 0;
+      if (hasContent) {
+        setViewMode('form');
+      }
     } catch (error) {
       console.error('Error fetching resume:', error);
     } finally {

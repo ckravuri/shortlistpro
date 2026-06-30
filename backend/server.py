@@ -155,6 +155,7 @@ class Education(BaseModel):
 class ResumeCreate(BaseModel):
     title: str = "My Resume"
     region: str = "US"
+    template: Optional[str] = None
 
 class ResumeUpdate(BaseModel):
     title: Optional[str] = None
@@ -528,19 +529,150 @@ async def check_resume_limit(user_id: str, subscription_tier: str):
     
     return True
 
+def get_template_structure(template_id: str):
+    """Get pre-populated structure for resume templates"""
+    templates = {
+        "harvard": {
+            "personal_info": {
+                "full_name": "Your Name",
+                "email": "your.email@example.com",
+                "phone": "(555) 123-4567",
+                "location": "City, State",
+                "linkedin": "linkedin.com/in/yourprofile",
+                "summary": "Write a compelling 2-3 sentence summary highlighting your key strengths and career goals. Focus on what makes you unique and valuable to employers."
+            },
+            "work_experience": [
+                {
+                    "id": "template-exp-1",
+                    "company": "Company Name",
+                    "position": "Your Job Title",
+                    "location": "City, State",
+                    "start_date": "MM/YYYY",
+                    "end_date": "Present",
+                    "current": True,
+                    "description": "Brief description of your role and responsibilities",
+                    "achievements": [
+                        "Quantifiable achievement with metrics (e.g., Increased sales by 25%)",
+                        "Another accomplishment demonstrating impact",
+                        "Use action verbs: Led, Developed, Implemented, Achieved"
+                    ]
+                }
+            ],
+            "education": [
+                {
+                    "id": "template-edu-1",
+                    "institution": "University Name",
+                    "degree": "Bachelor of Science",
+                    "field": "Your Major",
+                    "location": "City, State",
+                    "graduation_date": "MM/YYYY",
+                    "gpa": "3.X/4.0"
+                }
+            ],
+            "skills": ["Skill 1", "Skill 2", "Skill 3", "Skill 4", "Skill 5"]
+        },
+        "modern-professional": {
+            "personal_info": {
+                "full_name": "Your Name",
+                "email": "your.email@example.com",
+                "phone": "(555) 123-4567",
+                "location": "City, State",
+                "linkedin": "linkedin.com/in/yourprofile",
+                "summary": "Professional summary emphasizing your expertise and value proposition. Keep it concise, achievements-focused, and tailored to your target role."
+            },
+            "work_experience": [
+                {
+                    "id": "template-exp-1",
+                    "company": "Current/Recent Company",
+                    "position": "Your Position",
+                    "location": "City, State",
+                    "start_date": "MM/YYYY",
+                    "end_date": "Present",
+                    "current": True,
+                    "description": "Overview of your role",
+                    "achievements": [
+                        "Key accomplishment with measurable result",
+                        "Another achievement showing leadership or innovation",
+                        "Demonstrate skills relevant to your target role"
+                    ]
+                }
+            ],
+            "education": [
+                {
+                    "id": "template-edu-1",
+                    "institution": "University/College Name",
+                    "degree": "Degree Type",
+                    "field": "Field of Study",
+                    "location": "City, State",
+                    "graduation_date": "MM/YYYY",
+                    "gpa": "GPA (optional)"
+                }
+            ],
+            "skills": ["Technical Skill", "Software/Tool", "Methodology", "Soft Skill", "Industry Knowledge"]
+        }
+    }
+    
+    # Default template structure for other templates
+    default_template = {
+        "personal_info": {
+            "full_name": "Your Name",
+            "email": "your.email@example.com",
+            "phone": "(555) 123-4567",
+            "location": "City, State",
+            "linkedin": "linkedin.com/in/yourprofile",
+            "summary": "Write a 2-3 sentence professional summary. Highlight your key strengths, years of experience, and what you bring to potential employers."
+        },
+        "work_experience": [
+            {
+                "id": "template-exp-1",
+                "company": "Company Name",
+                "position": "Job Title",
+                "location": "City, State",
+                "start_date": "MM/YYYY",
+                "end_date": "MM/YYYY",
+                "current": False,
+                "description": "Brief overview of your role",
+                "achievements": [
+                    "Start each bullet with an action verb (Led, Developed, Achieved)",
+                    "Include quantifiable results when possible (Increased efficiency by 30%)",
+                    "Focus on impact and outcomes, not just responsibilities"
+                ]
+            }
+        ],
+        "education": [
+            {
+                "id": "template-edu-1",
+                "institution": "University Name",
+                "degree": "Degree Type (e.g., Bachelor of Science)",
+                "field": "Your Major",
+                "location": "City, State",
+                "graduation_date": "MM/YYYY",
+                "gpa": "3.X/4.0 (optional)"
+            }
+        ],
+        "skills": ["List", "Your", "Key", "Skills", "Here"]
+    }
+    
+    return templates.get(template_id, default_template)
+
 @api_router.post("/resumes")
 async def create_resume(resume: ResumeCreate, current_user: dict = Depends(get_current_user)):
     # Check subscription limit before creating
     await check_resume_limit(current_user["id"], current_user.get("subscription_tier", "free"))
     
+    # Get template structure if template is specified
+    template_structure = {}
+    if hasattr(resume, 'template') and resume.template:
+        template_structure = get_template_structure(resume.template)
+    
     resume_doc = {
         "user_id": current_user["id"],
         "title": resume.title,
         "region": resume.region,
-        "personal_info": {},
-        "work_experience": [],
-        "education": [],
-        "skills": [],
+        "personal_info": template_structure.get("personal_info", {}),
+        "work_experience": template_structure.get("work_experience", []),
+        "education": template_structure.get("education", []),
+        "skills": template_structure.get("skills", []),
         "ats_score": 0,
         "keywords": [],
         "created_at": datetime.now(timezone.utc).isoformat(),
