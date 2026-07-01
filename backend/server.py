@@ -498,6 +498,24 @@ async def check_resume_limit(user_id: str, subscription_tier: str):
     tier = subscription_tier.lower() if subscription_tier else "free"
     limit = SUBSCRIPTION_LIMITS.get(tier, SUBSCRIPTION_LIMITS["free"])["resumes"]
     
+    # For free users, check if they've EVER created a resume (prevent abuse by deleting/recreating)
+    if tier == "free":
+        user = await db.users.find_one({"id": user_id})
+        if user and user.get("has_created_resume", False):
+            # User has already used their free resume slot
+            resume_count = await db.resumes.count_documents({"user_id": user_id})
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "message": "Free plan already used",
+                    "description": "You've already used your Free plan resume. To create more resumes, please upgrade to Pro!",
+                    "current_count": resume_count,
+                    "limit": int(limit),
+                    "tier": tier,
+                    "upgrade_required": True
+                }
+            )
+    
     # Count existing resumes
     resume_count = await db.resumes.count_documents({"user_id": user_id})
     
@@ -681,6 +699,14 @@ async def create_resume(resume: ResumeCreate, current_user: dict = Depends(get_c
     result = await db.resumes.insert_one(resume_doc)
     resume_doc["id"] = str(result.inserted_id)
     resume_doc.pop("_id", None)
+    
+    # Mark that free user has created a resume (prevent abuse)
+    if current_user.get("subscription_tier", "free") == "free":
+        await db.users.update_one(
+            {"id": current_user["id"]},
+            {"$set": {"has_created_resume": True}}
+        )
+    
     return resume_doc
 
 @api_router.get("/resumes")
@@ -1204,6 +1230,13 @@ async def upload_resume(file: UploadFile = File(...), current_user: dict = Depen
         resume_doc["id"] = str(result.inserted_id)
         resume_doc.pop("_id", None)
         
+        # Mark that free user has created/uploaded a resume (prevent abuse)
+        if current_user.get("subscription_tier", "free") == "free":
+            await db.users.update_one(
+                {"id": current_user["id"]},
+                {"$set": {"has_created_resume": True}}
+            )
+        
         # Calculate initial ATS score
         ats_score = calculate_ats_score(resume_doc, {})
         await db.resumes.update_one({"_id": result.inserted_id}, {"$set": {"ats_score": ats_score}})
@@ -1670,14 +1703,18 @@ Selection Criteria Question:
 Candidate's Resume/Experience:
 {criteria_req.resumeContext}
 
-Generate a professional STAR-format response to the selection criteria question based ONLY on the provided resume/experience.
-Structure your response clearly with:
-- Situation: (context)
-- Task: (responsibility)
-- Action: (what was done)
-- Result: (outcome and impact)
+Generate a professional response to the selection criteria question based ONLY on the provided resume/experience.
 
-Write a compelling response that demonstrates the candidate's suitability.
+IMPORTANT FORMATTING INSTRUCTIONS:
+- Write the response in FOUR clear paragraphs following the STAR framework structure
+- DO NOT label the paragraphs with "Situation:", "Task:", "Action:", or "Result:"
+- Write naturally flowing paragraphs that users can copy-paste directly
+- First paragraph: Describe the context and background
+- Second paragraph: Explain the responsibility or challenge
+- Third paragraph: Detail the specific actions taken
+- Fourth paragraph: Highlight the outcomes and measurable impact
+
+The response should read as a cohesive narrative without explicit STAR labels, but still follow the STAR structure internally.
 """
     
     try:
