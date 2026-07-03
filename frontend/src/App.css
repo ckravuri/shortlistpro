@@ -68,12 +68,12 @@ body, .App {
 
 /* Buttons */
 .btn-primary {
-  background-color: #50C878;
+  background: linear-gradient(135deg, #50C878 0%, #40B868 100%);
   color: #001F3F;
-  font-weight: 500;
+  font-weight: 600;
   padding: 0.75rem 1.5rem;
-  border-radius: 0.125rem;
-  transition: background-color 0.2s ease-in-out;
+  border-radius: 0.25rem;
+  transition: all 0.2s ease-in-out;
   border: none;
   cursor: pointer;
   font-family: 'IBM Plex Sans', sans-serif;
@@ -81,25 +81,32 @@ body, .App {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
 .btn-primary:hover {
-  background-color: #40A860;
+  background: linear-gradient(135deg, #40B868 0%, #30A858 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(80, 200, 120, 0.3), 0 2px 4px -1px rgba(80, 200, 120, 0.2);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
 }
 
 .btn-primary:focus {
   outline: none;
-  box-shadow: 0 0 0 2px #001F3F;
+  box-shadow: 0 0 0 3px rgba(80, 200, 120, 0.3);
 }
 
 .btn-secondary {
   background-color: transparent;
-  border: 1px solid #708090;
+  border: 1.5px solid #CBD5E1;
   color: #001F3F;
   font-weight: 500;
   padding: 0.75rem 1.5rem;
-  border-radius: 0.125rem;
-  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+  border-radius: 0.25rem;
+  transition: all 0.2s ease-in-out;
   cursor: pointer;
   font-family: 'IBM Plex Sans', sans-serif;
   white-space: nowrap;
@@ -109,26 +116,33 @@ body, .App {
 }
 
 .btn-secondary:hover {
-  background-color: #F8FAFC;
+  background-color: #F1F5F9;
+  border-color: #94A3B8;
+  transform: translateY(-1px);
+}
+
+.btn-secondary:active {
+  transform: translateY(0);
 }
 
 .btn-secondary:focus {
   outline: none;
-  box-shadow: 0 0 0 2px #001F3F;
+  box-shadow: 0 0 0 3px rgba(0, 31, 63, 0.1);
 }
 
 /* Cards */
 .card {
   background-color: #FFFFFF;
   border: 1px solid #E2E8F0;
-  border-radius: 0.125rem;
+  border-radius: 0.5rem;
   padding: 1.5rem;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  transition: box-shadow 0.2s ease-in-out;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  transition: all 0.2s ease-in-out;
 }
 
 .card:hover {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  border-color: #CBD5E1;
 }
 
 /* Inputs */
@@ -174,23 +188,41 @@ body, .App {
   justify-content: center;
   border-radius: 9999px;
   font-weight: 700;
-  font-size: 1.5rem;
-  height: 6rem;
-  width: 6rem;
+  font-size: 2rem;
+  height: 7rem;
+  width: 7rem;
+  position: relative;
+  background: white;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.ats-score-circle::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 9999px;
+  padding: 4px;
+  background: conic-gradient(from 0deg, var(--score-color) 0deg, var(--score-color) calc(var(--score-percentage) * 3.6deg), #E2E8F0 calc(var(--score-percentage) * 3.6deg));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
 }
 
 .ats-excellent {
-  border: 4px solid #50C878;
+  --score-color: #50C878;
+  --score-percentage: var(--score, 85);
   color: #50C878;
 }
 
 .ats-warning {
-  border: 4px solid #F59E0B;
+  --score-color: #F59E0B;
+  --score-percentage: var(--score, 55);
   color: #F59E0B;
 }
 
 .ats-poor {
-  border: 4px solid #EF4444;
+  --score-color: #EF4444;
+  --score-percentage: var(--score, 30);
   color: #EF4444;
 }
 

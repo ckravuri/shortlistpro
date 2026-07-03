@@ -174,16 +174,44 @@ export const BulletPointWriter = () => {
             <h2 className="heading-section mb-6">Professional Bullet Points</h2>
 
             {!bulletPoints.length && !loading && (
-              <div className="text-center py-12" style={{ color: '#708090' }}>
-                <Sparkle size={48} className="mx-auto mb-4" style={{ opacity: 0.3 }} />
-                <p>Describe your experience and click generate</p>
+              <div className="text-center py-16" style={{ 
+                background: 'linear-gradient(135deg, rgba(0, 31, 63, 0.02) 0%, rgba(80, 200, 120, 0.02) 100%)',
+                borderRadius: '0.5rem'
+              }}>
+                <div className="relative w-24 h-24 mx-auto mb-6">
+                  <div className="absolute inset-0 rounded-full" style={{ 
+                    background: 'linear-gradient(135deg, rgba(0, 31, 63, 0.05) 0%, rgba(80, 200, 120, 0.05) 100%)',
+                  }}></div>
+                  <div className="absolute inset-3 flex items-center justify-center">
+                    <Sparkle size={48} weight="duotone" style={{ color: '#50C878' }} />
+                  </div>
+                </div>
+                <p className="text-lg font-medium mb-2" style={{ fontFamily: 'Outfit', color: '#001F3F' }}>
+                  Ready to transform your experience
+                </p>
+                <p className="text-sm" style={{ color: '#64748B' }}>
+                  Describe your achievements and let AI craft powerful bullet points
+                </p>
               </div>
             )}
 
             {loading && (
-              <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{ borderColor: '#001F3F' }}></div>
-                <p style={{ color: '#708090' }}>Crafting powerful bullet points...</p>
+              <div className="text-center py-16">
+                <div className="relative w-16 h-16 mx-auto mb-4">
+                  <div 
+                    className="absolute inset-0 rounded-full border-4 border-transparent animate-spin"
+                    style={{ 
+                      borderTopColor: '#50C878',
+                      borderRightColor: '#50C878',
+                      animationDuration: '1s'
+                    }}
+                  ></div>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Sparkle size={24} weight="fill" style={{ color: '#50C878' }} />
+                  </div>
+                </div>
+                <p className="font-medium" style={{ color: '#001F3F' }}>Crafting powerful bullet points...</p>
+                <p className="text-sm mt-2" style={{ color: '#64748B' }}>This may take a few moments</p>
               </div>
             )}
 

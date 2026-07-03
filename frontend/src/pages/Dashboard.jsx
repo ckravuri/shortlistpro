@@ -351,17 +351,61 @@ export const Dashboard = () => {
             <p className="body-text">Loading resumes...</p>
           </div>
         ) : resumes.length === 0 ? (
-          <div className="card text-center py-12" data-testid="empty-state">
-            <FileText size={64} weight="thin" style={{ color: '#708090', margin: '0 auto 1rem' }} />
-            <h3 className="text-xl font-medium mb-2" style={{ fontFamily: 'Outfit', color: '#001F3F' }}>
-              No resumes yet
+          <div className="card text-center py-16" data-testid="empty-state" style={{ 
+            background: 'linear-gradient(135deg, rgba(0, 31, 63, 0.02) 0%, rgba(80, 200, 120, 0.02) 100%)',
+            borderColor: '#E2E8F0'
+          }}>
+            {/* Illustration-style icon group */}
+            <div className="relative w-32 h-32 mx-auto mb-6">
+              <div className="absolute inset-0 rounded-full" style={{ 
+                background: 'linear-gradient(135deg, rgba(0, 31, 63, 0.05) 0%, rgba(80, 200, 120, 0.05) 100%)',
+              }}></div>
+              <div className="absolute inset-4 flex items-center justify-center">
+                <FileText size={56} weight="duotone" style={{ color: '#50C878' }} />
+              </div>
+              <div className="absolute bottom-2 right-2 bg-white rounded-full p-1.5 shadow-sm" style={{ border: '2px solid #50C878' }}>
+                <Sparkle size={16} weight="fill" style={{ color: '#50C878' }} />
+              </div>
+            </div>
+            
+            <h3 className="text-2xl font-semibold mb-3" style={{ fontFamily: 'Outfit', color: '#001F3F' }}>
+              Ready to Build Your Resume?
             </h3>
-            <p className="body-text mb-6">Create your first resume to get started</p>
+            <p className="body-text mb-2 max-w-md mx-auto" style={{ color: '#475569' }}>
+              Create an ATS-optimized resume that gets you hired. Our AI helps you craft compelling content backed by data.
+            </p>
+            <div className="flex items-center justify-center gap-6 mb-8 mt-6">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#E0F2E9' }}>
+                  <Target size={16} weight="bold" style={{ color: '#50C878' }} />
+                </div>
+                <span className="text-sm font-medium" style={{ color: '#475569' }}>ATS-Safe</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#E0F2E9' }}>
+                  <Sparkle size={16} weight="fill" style={{ color: '#50C878' }} />
+                </div>
+                <span className="text-sm font-medium" style={{ color: '#475569' }}>AI-Powered</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#E0F2E9' }}>
+                  <Crown size={16} weight="fill" style={{ color: '#50C878' }} />
+                </div>
+                <span className="text-sm font-medium" style={{ color: '#475569' }}>Professional</span>
+              </div>
+            </div>
+            
             <button
               onClick={() => setShowCreateModal(true)}
               data-testid="empty-state-create-button"
-              className="btn-primary"
+              className="btn-primary inline-flex items-center gap-2 shadow-lg"
+              style={{ 
+                padding: '0.875rem 2rem',
+                fontSize: '1rem',
+                boxShadow: '0 4px 6px -1px rgba(80, 200, 120, 0.3), 0 2px 4px -1px rgba(80, 200, 120, 0.2)'
+              }}
             >
+              <Plus size={20} weight="bold" />
               Create Your First Resume
             </button>
           </div>
