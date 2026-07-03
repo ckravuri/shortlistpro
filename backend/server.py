@@ -1088,7 +1088,7 @@ async def convert_pdf_to_word(file: UploadFile = File(...), current_user: dict =
 
 @api_router.post("/convert-word-to-pdf")
 async def convert_word_to_pdf(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
-    """Convert uploaded Word document to PDF format (Paid users only)"""
+    """Convert uploaded Word document to PDF format (Paid users only) - Preserves formatting"""
     # Check subscription tier
     tier = current_user.get("subscription_tier", "free")
     if tier == "free":
@@ -1101,73 +1101,57 @@ async def convert_word_to_pdf(file: UploadFile = File(...), current_user: dict =
     if file_ext not in ['docx', 'doc']:
         raise HTTPException(status_code=400, detail="Only Word documents (.docx, .doc) are supported for conversion")
     
+    import tempfile
+    import subprocess
+    from pathlib import Path
+    
+    # Create temporary files
+    temp_dir = tempfile.mkdtemp()
     try:
-        from docx import Document
-        from io import BytesIO
-        from reportlab.lib.pagesizes import letter
-        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-        from reportlab.lib.units import inch
-        from xml.sax.saxutils import escape
-        
-        # Read Word document
         file_bytes = await file.read()
         logger.info(f"Word to PDF: Processing file {file.filename}, size: {len(file_bytes)} bytes")
         
-        doc = Document(BytesIO(file_bytes))
-        logger.info(f"Word document opened, {len(doc.paragraphs)} paragraphs")
+        # Save uploaded file
+        input_path = Path(temp_dir) / file.filename
+        with open(input_path, 'wb') as f:
+            f.write(file_bytes)
         
-        # Create PDF
-        pdf_buffer = BytesIO()
-        pdf_doc = SimpleDocTemplate(pdf_buffer, pagesize=letter)
-        story = []
-        styles = getSampleStyleSheet()
+        output_path = Path(temp_dir) / f"{input_path.stem}.pdf"
         
-        # Custom styles
-        title_style = ParagraphStyle(
-            'CustomTitle',
-            parent=styles['Heading1'],
-            fontSize=16,
-            spaceAfter=12
-        )
-        normal_style = styles['Normal']
+        # Convert using LibreOffice headless
+        try:
+            result = subprocess.run(
+                [
+                    'soffice',
+                    '--headless',
+                    '--convert-to', 'pdf',
+                    '--outdir', temp_dir,
+                    str(input_path)
+                ],
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=True
+            )
+            logger.info(f"LibreOffice conversion output: {result.stdout}")
+        except subprocess.TimeoutExpired:
+            raise HTTPException(status_code=504, detail="Conversion timed out. File may be too large or complex.")
+        except subprocess.CalledProcessError as e:
+            logger.error(f"LibreOffice conversion failed: {e.stderr}")
+            raise HTTPException(status_code=500, detail="Failed to convert document. Please ensure it's a valid Word file.")
         
-        # Track if any content was added
-        content_added = False
+        # Read converted PDF
+        if not output_path.exists():
+            raise HTTPException(status_code=500, detail="PDF conversion completed but output file not found")
         
-        # Extract and convert content
-        for para in doc.paragraphs:
-            if para.text.strip():
-                content_added = True
-                # Escape special XML characters that break ReportLab
-                safe_text = escape(para.text)
-                
-                try:
-                    # Check if it's a heading (based on style name)
-                    if para.style.name.startswith('Heading'):
-                        story.append(Paragraph(safe_text, title_style))
-                    else:
-                        story.append(Paragraph(safe_text, normal_style))
-                    story.append(Spacer(1, 0.1*inch))
-                except Exception as para_error:
-                    # If Paragraph fails, log and skip
-                    logger.warning(f"Skipping paragraph due to error: {para_error}")
-                    continue
+        with open(output_path, 'rb') as f:
+            pdf_bytes = f.read()
         
-        if not content_added:
-            logger.warning("No text content found in Word document")
-            raise HTTPException(status_code=400, detail="The Word document appears to be empty.")
-        
-        # Build PDF
-        pdf_doc.build(story)
-        pdf_buffer.seek(0)
-        
-        output_size = len(pdf_buffer.getvalue())
-        logger.info(f"PDF created successfully, size: {output_size} bytes")
+        logger.info(f"PDF created successfully, size: {len(pdf_bytes)} bytes")
         
         original_name = file.filename.rsplit('.', 1)[0]
         return Response(
-            content=pdf_buffer.getvalue(),
+            content=pdf_bytes,
             media_type="application/pdf",
             headers={
                 "Content-Disposition": f"attachment; filename={original_name}.pdf"
@@ -1178,6 +1162,13 @@ async def convert_word_to_pdf(file: UploadFile = File(...), current_user: dict =
     except Exception as e:
         logger.error(f"Word to PDF conversion error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to convert Word to PDF: {str(e)}")
+    finally:
+        # Cleanup temp files
+        import shutil
+        try:
+            shutil.rmtree(temp_dir)
+        except Exception as cleanup_error:
+            logger.warning(f"Failed to cleanup temp directory: {cleanup_error}")
 
 # ============ FILE UPLOAD & PARSING ============
 @api_router.post("/resumes/upload")

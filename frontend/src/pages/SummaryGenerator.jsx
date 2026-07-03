@@ -79,9 +79,19 @@ export const SummaryGenerator = () => {
       <div className="max-w-7xl mx-auto px-6 py-12">
         <div className="mb-8">
           <h1 className="heading-page mb-2">AI Resume Summary Generator</h1>
-          <p className="body-text-sm" style={{ color: '#708090' }}>
+          <p className="body-text-sm mb-3" style={{ color: '#708090' }}>
             Create a compelling professional summary that captures your value
           </p>
+          {/* No-Fabrication Badge */}
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-sm" style={{ backgroundColor: '#FFFBEB', border: '1px solid #FCD34D' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#F59E0B" strokeWidth="2"/>
+              <path d="M12 8V12L14 14" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span className="text-xs font-medium" style={{ color: '#92400E' }}>
+              No-Fabrication AI: Only uses information you provide
+            </span>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

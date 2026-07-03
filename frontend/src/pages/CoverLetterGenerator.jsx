@@ -12,6 +12,9 @@ export const CoverLetterGenerator = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
+  const [resumes, setResumes] = useState([]);
+  const [selectedResumeId, setSelectedResumeId] = useState('');
+  
   const [formData, setFormData] = useState({
     fullName: user?.name || '',
     jobTitle: '',
@@ -24,6 +27,47 @@ export const CoverLetterGenerator = () => {
   const [coverLetter, setCoverLetter] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Fetch user's resumes
+  useEffect(() => {
+    fetchResumes();
+  }, []);
+
+  const fetchResumes = async () => {
+    try {
+      const { data } = await axios.get(`${API}/resumes`, { withCredentials: true });
+      setResumes(data);
+      if (data.length > 0) {
+        setSelectedResumeId(data[0].id);
+        populateFromResume(data[0]);
+      }
+    } catch (error) {
+      console.error('Failed to fetch resumes:', error);
+    }
+  };
+
+  const populateFromResume = (resume) => {
+    const skills = resume.skills?.join(', ') || '';
+    const experience = resume.work_experience?.slice(0, 2).map(exp => 
+      `${exp.position} at ${exp.company}: ${exp.achievements?.slice(0, 2).join('. ')}`
+    ).join('\n\n') || '';
+
+    setFormData(prev => ({
+      ...prev,
+      fullName: resume.personal_info?.full_name || prev.fullName,
+      skills,
+      experience
+    }));
+  };
+
+  const handleResumeChange = (e) => {
+    const resumeId = e.target.value;
+    setSelectedResumeId(resumeId);
+    const resume = resumes.find(r => r.id === resumeId);
+    if (resume) {
+      populateFromResume(resume);
+    }
+  };
 
   // Pre-fill with example if navigated from templates
   useEffect(() => {
@@ -109,6 +153,28 @@ export const CoverLetterGenerator = () => {
             )}
 
             <div className="space-y-4">
+              {/* Resume Selector */}
+              {resumes.length > 0 && (
+                <div>
+                  <label className="input-label">AUTO-POPULATE FROM RESUME (OPTIONAL)</label>
+                  <select
+                    value={selectedResumeId}
+                    onChange={handleResumeChange}
+                    className="input-field"
+                  >
+                    <option value="">-- Select a resume to auto-fill --</option>
+                    {resumes.map(resume => (
+                      <option key={resume.id} value={resume.id}>
+                        {resume.title}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs mt-1" style={{ color: '#708090' }}>
+                    Skills and experience will be populated from your selected resume
+                  </p>
+                </div>
+              )}
+
               <div>
                 <label className="input-label">Full Name</label>
                 <input

@@ -223,3 +223,11 @@ body, .App {
 button, a, input, select, textarea {
   transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out, color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
 }
+
+/* Resume Text Wrapping - Preserve phrase boundaries */
+.resume-role-title {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  hyphens: none;
+  white-space: normal;
+}

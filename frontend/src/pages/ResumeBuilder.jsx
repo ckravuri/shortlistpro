@@ -416,6 +416,37 @@ export const ResumeBuilder = () => {
                     placeholder="johndoe.com"
                   />
                 </div>
+                <div>
+                  <label className="input-label">Target Market / Region</label>
+                  <select
+                    data-testid="select-region"
+                    className="input-field"
+                    value={resume.region || 'US'}
+                    onChange={async (e) => {
+                      const newRegion = e.target.value;
+                      const updatedResume = { ...resume, region: newRegion };
+                      setResume(updatedResume);
+                      try {
+                        await axios.put(
+                          `${API}/resumes/${resumeId}`,
+                          { region: newRegion },
+                          { withCredentials: true }
+                        );
+                      } catch (error) {
+                        console.error('Failed to update region:', error);
+                      }
+                    }}
+                  >
+                    <option value="US">United States (US)</option>
+                    <option value="UK">United Kingdom (UK)</option>
+                    <option value="AU">Australia (AU)</option>
+                    <option value="EU">European Union (EU)</option>
+                    <option value="IN">India (IN)</option>
+                  </select>
+                  <p className="text-xs mt-1" style={{ color: '#708090' }}>
+                    AI adapts to regional resume conventions
+                  </p>
+                </div>
               </div>
               <div className="mt-4">
                 <div className="flex items-center justify-between mb-2">
@@ -800,15 +831,15 @@ export const ResumeBuilder = () => {
                       {resume.work_experience.map((exp, idx) => (
                         <div key={idx} className="mb-3">
                           <div className="flex justify-between items-start mb-1">
-                            <div>
-                              <div className="font-bold text-xs" style={{ color: '#001F3F' }}>
+                            <div className="flex-1 mr-2">
+                              <div className="font-bold text-xs resume-role-title" style={{ color: '#001F3F' }}>
                                 {exp.position || 'Position'} {exp.company && `• ${exp.company}`}
                               </div>
                               {exp.location && (
                                 <div className="text-xs" style={{ color: '#708090' }}>{exp.location}</div>
                               )}
                             </div>
-                            <div className="text-xs whitespace-nowrap" style={{ color: '#708090' }}>
+                            <div className="text-xs whitespace-nowrap flex-shrink-0" style={{ color: '#708090' }}>
                               {exp.start_date} - {exp.current ? 'Present' : exp.end_date}
                             </div>
                           </div>
@@ -983,6 +1014,18 @@ export const ResumeBuilder = () => {
                   <strong>Target Market:</strong> {resume.region}
                 </p>
               </div>
+              
+              {/* Resume Length Warning */}
+              {(resume.work_experience?.length > 4 || resume.education?.length > 3) && (
+                <div className="mt-4 p-3 rounded-sm" style={{ backgroundColor: '#FEF3C7', border: '1px solid #FCD34D' }}>
+                  <p className="text-xs font-medium mb-1" style={{ color: '#92400E' }}>
+                    ⚠️ Resume Length Advisory
+                  </p>
+                  <p className="text-xs" style={{ color: '#78350F' }}>
+                    Your resume may exceed 1-2 pages. Consider prioritizing your most recent and relevant experience.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
