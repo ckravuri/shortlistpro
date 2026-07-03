@@ -7,8 +7,8 @@ export const Landing = () => {
     <div className="min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
       {/* Navigation */}
       <nav className="border-b" style={{ borderColor: '#E2E8F0', backgroundColor: '#FFFFFF' }}>
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <div style={{
               background: 'linear-gradient(135deg, #001F3F 0%, #50C878 100%)',
               WebkitBackgroundClip: 'text',
@@ -16,10 +16,10 @@ export const Landing = () => {
               backgroundClip: 'text',
               display: 'inline-block'
             }}>
-              <FileText size={32} weight="bold" />
+              <FileText size={28} weight="bold" className="sm:w-8 sm:h-8" />
             </div>
             <span 
-              className="text-2xl font-semibold" 
+              className="text-lg sm:text-2xl font-semibold" 
               style={{ 
                 fontFamily: 'Outfit',
                 background: 'linear-gradient(135deg, #001F3F 0%, #50C878 100%)',
@@ -31,55 +31,55 @@ export const Landing = () => {
               ShortlistPro.cv
             </span>
           </div>
-          <div className="flex gap-4">
+          <div className="flex gap-2 sm:gap-4">
             <Link
               to="/pricing"
               data-testid="nav-pricing-link"
-              className="btn-secondary"
-              style={{ padding: '0.5rem 1.5rem' }}
+              className="btn-secondary text-sm sm:text-base"
+              style={{ padding: '0.4rem 0.75rem' }}
             >
               Pricing
             </Link>
             <Link
               to="/login"
               data-testid="nav-login-link"
-              className="btn-secondary"
-              style={{ padding: '0.5rem 1.5rem' }}
+              className="btn-secondary text-sm sm:text-base"
+              style={{ padding: '0.4rem 0.75rem' }}
             >
               Login
             </Link>
             <Link
               to="/register"
               data-testid="nav-register-link"
-              className="btn-primary"
-              style={{ padding: '0.5rem 1.5rem' }}
+              className="btn-primary text-sm sm:text-base whitespace-nowrap"
+              style={{ padding: '0.4rem 0.75rem' }}
             >
-              Get Started Free
+              Get Started
             </Link>
           </div>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <div className="max-w-7xl mx-auto px-6 py-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
         <div className="max-w-4xl">
-          <h1 className="heading-hero mb-6">
+          <h1 className="heading-hero mb-4 sm:mb-6">
             Build ATS-Ready Resumes
             <br />
             <span style={{ color: '#50C878' }}>That Get You Hired</span>
           </h1>
-          <p className="body-text text-lg mb-8 max-w-2xl">
+          <p className="body-text text-base sm:text-lg mb-6 sm:mb-8 max-w-2xl">
             AI-powered resume builder with real-time ATS scoring, country-aware guidance, and
             professional templates. No fabrication, just results.
           </p>
           <Link
             to="/register"
             data-testid="hero-cta-button"
-            className="btn-primary inline-flex items-center gap-2"
-            style={{ fontSize: '1.125rem', padding: '1rem 2rem' }}
+            className="btn-primary inline-flex items-center gap-2 text-base sm:text-lg"
+            style={{ padding: '0.875rem 1.5rem' }}
           >
             Start Building Free
-            <ArrowRight size={24} weight="bold" />
+            <ArrowRight size={20} weight="bold" className="sm:w-6 sm:h-6" />
           </Link>
         </div>
 
@@ -344,19 +344,19 @@ export const Landing = () => {
 
         {/* CTA Section */}
         <div
-          className="mt-20 p-12 border rounded-sm"
+          className="mt-12 sm:mt-20 p-6 sm:p-12 border rounded-sm"
           style={{ borderColor: '#E2E8F0', backgroundColor: '#FFFFFF' }}
         >
           <div className="max-w-2xl">
-            <h2 className="heading-section mb-4">Ready to land your dream job?</h2>
-            <p className="body-text mb-6">
+            <h2 className="heading-section mb-3 sm:mb-4">Ready to land your dream job?</h2>
+            <p className="body-text mb-4 sm:mb-6">
               Join thousands of professionals who&apos;ve upgraded their career prospects with ShortlistPro.cv.
             </p>
             <Link
               to="/register"
               data-testid="cta-section-button"
-              className="btn-primary"
-              style={{ fontSize: '1rem', padding: '0.875rem 1.75rem' }}
+              className="btn-primary inline-block text-sm sm:text-base whitespace-nowrap"
+              style={{ padding: '0.75rem 1.25rem' }}
             >
               Create Your Resume Now
             </Link>
@@ -366,15 +366,15 @@ export const Landing = () => {
 
       {/* Footer */}
       <footer
-        className="border-t mt-20"
+        className="border-t mt-12 sm:mt-20"
         style={{ borderColor: '#E2E8F0', backgroundColor: '#FFFFFF' }}
       >
-        <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="body-text-sm">
+            <p className="body-text-sm text-center md:text-left">
               © 2026 ShortlistPro.cv - Professional Resume Builder
             </p>
-            <div className="flex gap-6">
+            <div className="flex flex-wrap justify-center gap-4 sm:gap-6">
               <Link 
                 to="/privacy" 
                 className="body-text-sm hover:opacity-70 transition-opacity"

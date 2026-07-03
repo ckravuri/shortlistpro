@@ -77,6 +77,10 @@ body, .App {
   border: none;
   cursor: pointer;
   font-family: 'IBM Plex Sans', sans-serif;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-primary:hover {
@@ -98,6 +102,10 @@ body, .App {
   transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
   cursor: pointer;
   font-family: 'IBM Plex Sans', sans-serif;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-secondary:hover {
