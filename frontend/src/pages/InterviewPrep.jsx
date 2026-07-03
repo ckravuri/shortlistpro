@@ -49,7 +49,7 @@ export const InterviewPrep = () => {
         const data = await res.json();
         setResumes(data);
         if (data.length > 0) {
-          setSelectedResumeId(data[0]._id);
+          setSelectedResumeId(data[0].id);
         }
       }
     } catch (err) {
@@ -191,7 +191,7 @@ export const InterviewPrep = () => {
                   <option>No resumes found</option>
                 ) : (
                   resumes.map((resume) => (
-                    <option key={resume._id} value={resume._id}>
+                    <option key={resume.id} value={resume.id}>
                       {resume.title}
                     </option>
                   ))
