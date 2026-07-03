@@ -23,7 +23,7 @@ export const InterviewPrep = () => {
 
   const fetchUser = async () => {
     try {
-      const res = await fetch(`${API}/api/user`, {
+      const res = await fetch(`${API}/api/auth/me`, {
         credentials: 'include'
       });
       if (res.ok) {
@@ -47,9 +47,9 @@ export const InterviewPrep = () => {
       });
       if (res.ok) {
         const data = await res.json();
-        setResumes(data.resumes);
-        if (data.resumes.length > 0) {
-          setSelectedResumeId(data.resumes[0].id);
+        setResumes(data);
+        if (data.length > 0) {
+          setSelectedResumeId(data[0]._id);
         }
       }
     } catch (err) {
@@ -191,7 +191,7 @@ export const InterviewPrep = () => {
                   <option>No resumes found</option>
                 ) : (
                   resumes.map((resume) => (
-                    <option key={resume.id} value={resume.id}>
+                    <option key={resume._id} value={resume._id}>
                       {resume.title}
                     </option>
                   ))

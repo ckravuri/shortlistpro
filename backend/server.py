@@ -1767,8 +1767,7 @@ async def generate_interview_questions(
     try:
         # Fetch the resume
         resume = await db.resumes.find_one(
-            {"id": prep_req.resume_id, "user_id": current_user["id"]},
-            {"_id": 0}
+            {"_id": ObjectId(prep_req.resume_id), "user_id": current_user["id"]}
         )
         
         if not resume:
