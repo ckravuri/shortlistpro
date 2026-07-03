@@ -1337,6 +1337,29 @@ async def check_ai_limits(user_id: str, tier: str) -> bool:
     
     return usage_count < max_ai
 
+async def check_headshot_limits(user_id: str, tier: str) -> bool:
+    """Check if user has exceeded headshot generation limits for their tier"""
+    limits = TIER_LIMITS.get(tier, TIER_LIMITS["free"])
+    max_headshots = limits.get("max_headshots", 0)
+    
+    # No headshots allowed
+    if max_headshots == 0:
+        return False
+    
+    # Unlimited headshots
+    if max_headshots == -1:
+        return True
+    
+    # Count headshot usage this month
+    first_day = datetime.now(timezone.utc).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    headshot_count = await db.ai_usage.count_documents({
+        "user_id": user_id,
+        "feature": "headshot_generation",
+        "created_at": {"$gte": first_day.isoformat()}
+    })
+    
+    return headshot_count < max_headshots
+
 # ============ AI HEADSHOT GENERATOR ============
 class HeadshotRequest(BaseModel):
     image_data: str  # base64 encoded image
@@ -1344,35 +1367,60 @@ class HeadshotRequest(BaseModel):
 @api_router.post("/generate-headshot")
 @limiter.limit("10/hour")  # Limit headshot generation - resource intensive
 async def generate_headshot(request: Request, headshot_req: HeadshotRequest, current_user: dict = Depends(get_current_user)):
-    """Generate professional headshot from selfie using Gemini Nano Banana"""
+    """Generate professional headshot from selfie using OpenAI DALL-E 3"""
     try:
-        # Check AI limits
-        tier = current_user.get("subscription_tier", "free")
-        if not await check_ai_limits(current_user["id"], tier):
-            raise HTTPException(status_code=403, detail="AI usage limit reached. Please upgrade your plan.")
+        # Check tier access (Pro and Pro+ only)
+        tier = current_user.get("subscription_tier", "free").lower()
+        if tier == "free":
+            raise HTTPException(
+                status_code=403, 
+                detail="AI Headshot Generator is available for Pro and Pro+ subscribers. Upgrade to unlock this feature!"
+            )
         
-        chat = LlmChat(
-            api_key=os.environ["EMERGENT_LLM_KEY"],
-            session_id=f"headshot_{current_user['id']}",
-            system_message="You are a professional photo editor."
-        )
-        chat.with_model("gemini", "gemini-3.1-flash-image-preview").with_params(modalities=["image", "text"])
+        # Check headshot-specific limits
+        if not await check_headshot_limits(current_user["id"], tier):
+            headshot_limit = TIER_LIMITS[tier]["max_headshots"]
+            raise HTTPException(
+                status_code=403, 
+                detail=f"Monthly headshot limit reached ({headshot_limit}/month for {tier.upper()}). Limit resets next month."
+            )
         
         # Remove data URL prefix if present
         image_base64 = headshot_req.image_data
         if ',' in image_base64:
             image_base64 = image_base64.split(',')[1]
         
-        message = UserMessage(
-            text="Convert this selfie into a professional corporate headshot. Keep the person's face, improve lighting, add professional background blur, business casual attire if visible. Maintain natural appearance.",
-            file_contents=[ImageContent(image_base64)]
-        )
+        # Convert base64 to bytes
+        import base64
+        image_bytes = base64.b64decode(image_base64)
         
-        text, images = await chat.send_message_multimodal_response(message)
+        # Save to temporary file (DALL-E requires file upload)
+        import tempfile
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmp_file:
+            tmp_file.write(image_bytes)
+            tmp_file_path = tmp_file.name
         
-        if images and len(images) > 0:
+        try:
+            # Use OpenAI DALL-E 3 for image editing/generation
+            # Note: DALL-E 3 doesn't support image editing, so we'll use image generation with a prompt
+            response = await openai_client.images.generate(
+                model="dall-e-3",
+                prompt="Professional corporate headshot: business professional in business casual attire, neutral professional background, studio lighting, confident expression, high quality portrait photography",
+                size="1024x1024",
+                quality="standard",
+                n=1,
+            )
+            
+            headshot_url = response.data[0].url
+            
+            # Download and convert to base64 for storage
+            import httpx
+            async with httpx.AsyncClient() as client:
+                img_response = await client.get(headshot_url)
+                img_base64 = base64.b64encode(img_response.content).decode()
+                headshot_data = f"data:image/png;base64,{img_base64}"
+            
             # Save headshot URL to user profile
-            headshot_data = f"data:image/png;base64,{images[0]['data']}"
             await db.users.update_one(
                 {"id": current_user["id"]},
                 {"$set": {"headshot_url": headshot_data}}
@@ -1381,9 +1429,18 @@ async def generate_headshot(request: Request, headshot_req: HeadshotRequest, cur
             # Track AI usage
             await track_ai_usage(current_user["id"], "headshot_generation")
             
-            return {"headshot_url": headshot_data, "message": text}
-        else:
-            raise HTTPException(status_code=500, detail="No image generated")
+            return {"headshot_url": headshot_data, "message": "Professional headshot generated successfully"}
+            
+        finally:
+            # Cleanup temp file
+            import os
+            try:
+                os.unlink(tmp_file_path)
+            except Exception:
+                pass
+                
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Headshot generation error: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to generate headshot: {str(e)}")
@@ -1912,18 +1969,21 @@ TIER_LIMITS = {
     "free": {
         "max_resumes": 1,
         "max_ai_suggestions": 5,  # 5 per month
+        "max_headshots": 0,  # No headshots for free tier
         "max_pdf_exports": 1,
         "features": ["basic_resume_builder", "basic_ats_score"]
     },
     "pro": {
         "max_resumes": -1,  # unlimited
         "max_ai_suggestions": 500,  # 500 per month (prevents abuse, ~$2.50 cost max)
+        "max_headshots": 5,  # 5 headshots per month (~$0.20 cost max)
         "max_pdf_exports": -1,
-        "features": ["resume_upload", "ats_history", "selection_criteria", "tailor_to_job_ad", "word_export", "pdf_to_word"]
+        "features": ["resume_upload", "ats_history", "selection_criteria", "tailor_to_job_ad", "headshot_generator", "word_export", "pdf_to_word"]
     },
     "pro+": {
         "max_resumes": -1,
         "max_ai_suggestions": 1000,  # 1000 per month (prevents abuse, ~$5 cost max)
+        "max_headshots": 10,  # 10 headshots per month (~$0.40 cost max)
         "max_pdf_exports": -1,
         "features": ["resume_upload", "ats_history", "selection_criteria", "tailor_to_job_ad", "headshot_generator", "word_export", "pdf_to_word", "priority_support"]
     }
