@@ -19,6 +19,7 @@ from bson import ObjectId
 import secrets
 import re
 from emergentintegrations.llm.chat import LlmChat, UserMessage, TextDelta, StreamDone, ImageContent
+from openai import AsyncOpenAI
 import json
 import asyncio
 import base64
@@ -43,6 +44,9 @@ stripe.api_key = os.environ['STRIPE_SECRET_KEY']
 STRIPE_PRO_PRICE_ID = os.environ['STRIPE_PRO_PRICE_ID']
 STRIPE_PRO_PLUS_PRICE_ID = os.environ['STRIPE_PRO_PLUS_PRICE_ID']
 STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
+
+# OpenAI Configuration
+openai_client = AsyncOpenAI(api_key=os.environ['OPENAI_API_KEY'])
 
 # Google OAuth Configuration
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
@@ -827,19 +831,21 @@ Provide a professional suggestion to improve this content. If metrics are needed
     
     async def generate():
         try:
-            chat = LlmChat(
-                api_key=os.environ["EMERGENT_LLM_KEY"],
-                session_id=f"resume_{resume_id}_{ai_req.field}",
-                system_message=system_prompt
+            stream = await openai_client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                stream=True,
+                temperature=0.7,
+                max_tokens=500
             )
-            chat.with_model("gemini", "gemini-3.5-flash")
             
-            message = UserMessage(text=user_prompt)
-            
-            async for event in chat.stream_message(message):
-                if isinstance(event, TextDelta):
-                    yield f"data: {json.dumps({'content': event.content})}\n\n"
-                elif isinstance(event, StreamDone):
+            async for chunk in stream:
+                if chunk.choices[0].delta.content:
+                    yield f"data: {json.dumps({'content': chunk.choices[0].delta.content})}\n\n"
+                if chunk.choices[0].finish_reason == "stop":
                     yield f"data: {json.dumps({'done': True})}\n\n"
                     break
         except Exception as e:
@@ -1425,21 +1431,24 @@ Format as JSON:
     
     async def generate():
         try:
-            chat = LlmChat(
-                api_key=os.environ["EMERGENT_LLM_KEY"],
-                session_id=f"jobad_{current_user['id']}",
-                system_message=system_prompt
+            stream = await openai_client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                stream=True,
+                temperature=0.7,
+                max_tokens=2000
             )
-            chat.with_model("gemini", "gemini-3.5-flash")
-            
-            message = UserMessage(text=user_prompt)
             
             accumulated = ""
-            async for event in chat.stream_message(message):
-                if isinstance(event, TextDelta):
-                    accumulated += event.content
-                    yield f"data: {json.dumps({'content': event.content})}\\n\\n"
-                elif isinstance(event, StreamDone):
+            async for chunk in stream:
+                if chunk.choices[0].delta.content:
+                    content = chunk.choices[0].delta.content
+                    accumulated += content
+                    yield f"data: {json.dumps({'content': content})}\\n\\n"
+                if chunk.choices[0].finish_reason == "stop":
                     yield f"data: {json.dumps({'done': True, 'full_content': accumulated})}\\n\\n"
                     break
         except Exception as e:
@@ -1496,21 +1505,17 @@ Write a compelling cover letter that makes the candidate stand out.
 """
     
     try:
-        chat = LlmChat(
-            api_key=os.environ["EMERGENT_LLM_KEY"],
-            session_id=f"coverletter_{current_user['id']}",
-            system_message=system_prompt
+        response = await openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=0.7,
+            max_tokens=1500
         )
-        chat.with_model("gemini", "gemini-3.5-flash")
         
-        message = UserMessage(text=user_prompt)
-        
-        accumulated = ""
-        async for event in chat.stream_message(message):
-            if isinstance(event, TextDelta):
-                accumulated += event.content
-            elif isinstance(event, StreamDone):
-                break
+        accumulated = response.choices[0].message.content
         
         # Track AI usage
         await track_ai_usage(current_user["id"], "cover_letter_generation")
@@ -1558,21 +1563,17 @@ Generate impactful bullet points. Return ONLY a JSON array of strings:
 """
     
     try:
-        chat = LlmChat(
-            api_key=os.environ["EMERGENT_LLM_KEY"],
-            session_id=f"bullets_{current_user['id']}",
-            system_message=system_prompt
+        response = await openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=0.7,
+            max_tokens=800
         )
-        chat.with_model("gemini", "gemini-3.5-flash")
         
-        message = UserMessage(text=user_prompt)
-        
-        accumulated = ""
-        async for event in chat.stream_message(message):
-            if isinstance(event, TextDelta):
-                accumulated += event.content
-            elif isinstance(event, StreamDone):
-                break
+        accumulated = response.choices[0].message.content
         
         # Parse JSON response
         try:
@@ -1641,21 +1642,17 @@ Write a compelling 2-3 sentence professional summary that captures this candidat
 """
     
     try:
-        chat = LlmChat(
-            api_key=os.environ["EMERGENT_LLM_KEY"],
-            session_id=f"summary_{current_user['id']}",
-            system_message=system_prompt
+        response = await openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=0.7,
+            max_tokens=600
         )
-        chat.with_model("gemini", "gemini-3.5-flash")
         
-        message = UserMessage(text=user_prompt)
-        
-        accumulated = ""
-        async for event in chat.stream_message(message):
-            if isinstance(event, TextDelta):
-                accumulated += event.content
-            elif isinstance(event, StreamDone):
-                break
+        accumulated = response.choices[0].message.content
         
         # Track AI usage
         await track_ai_usage(current_user["id"], "summary_generation")
@@ -1713,21 +1710,17 @@ The response should read as a cohesive narrative without explicit STAR labels, b
 """
     
     try:
-        chat = LlmChat(
-            api_key=os.environ["EMERGENT_LLM_KEY"],
-            session_id=f"selection_{current_user['id']}",
-            system_message=system_prompt
+        response = await openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=0.7,
+            max_tokens=1000
         )
-        chat.with_model("gemini", "gemini-3.5-flash")
         
-        message = UserMessage(text=user_prompt)
-        
-        accumulated = ""
-        async for event in chat.stream_message(message):
-            if isinstance(event, TextDelta):
-                accumulated += event.content
-            elif isinstance(event, StreamDone):
-                break
+        accumulated = response.choices[0].message.content
         
         # Track AI usage
         await track_ai_usage(current_user["id"], "selection_criteria_generation")
@@ -1818,22 +1811,19 @@ CANDIDATE'S RESUME SUMMARY:
 
 Generate tailored interview questions for this candidate applying to this specific role."""
         
-        # Call LLM
-        chat = LlmChat(
-            api_key=os.environ["EMERGENT_LLM_KEY"],
-            session_id=f"interview_prep_{current_user['id']}_{prep_req.resume_id}",
-            system_message=system_prompt
+        # Call OpenAI
+        response = await openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=0.7,
+            max_tokens=1500,
+            response_format={"type": "json_object"}
         )
-        chat.with_model("openai", "gpt-5.2")
         
-        message = UserMessage(text=user_prompt)
-        
-        accumulated = ""
-        async for event in chat.stream_message(message):
-            if isinstance(event, TextDelta):
-                accumulated += event.content
-            elif isinstance(event, StreamDone):
-                break
+        accumulated = response.choices[0].message.content
         
         # Parse the JSON response
         try:
@@ -1907,19 +1897,19 @@ async def get_admin_stats(current_user: dict = Depends(get_current_user)):
 TIER_LIMITS = {
     "free": {
         "max_resumes": 1,
-        "max_ai_suggestions": 5,
+        "max_ai_suggestions": 5,  # 5 per month
         "max_pdf_exports": 1,
         "features": ["basic_resume_builder", "basic_ats_score"]
     },
     "pro": {
         "max_resumes": -1,  # unlimited
-        "max_ai_suggestions": -1,
+        "max_ai_suggestions": 500,  # 500 per month (prevents abuse, ~$2.50 cost max)
         "max_pdf_exports": -1,
         "features": ["resume_upload", "ats_history", "selection_criteria", "tailor_to_job_ad", "word_export", "pdf_to_word"]
     },
     "pro+": {
         "max_resumes": -1,
-        "max_ai_suggestions": -1,
+        "max_ai_suggestions": 1000,  # 1000 per month (prevents abuse, ~$5 cost max)
         "max_pdf_exports": -1,
         "features": ["resume_upload", "ats_history", "selection_criteria", "tailor_to_job_ad", "headshot_generator", "word_export", "pdf_to_word", "priority_support"]
     }
