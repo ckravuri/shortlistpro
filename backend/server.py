@@ -808,6 +808,11 @@ async def ai_suggest(request: Request, resume_id: str, ai_req: AISuggestionReque
     if not resume:
         raise HTTPException(status_code=404, detail="Resume not found")
     
+    # Check AI limits and track usage
+    tier = current_user.get("subscription_tier", "free")
+    if not await check_ai_limits(current_user["id"], tier):
+        raise HTTPException(status_code=403, detail="AI usage limit reached. Please upgrade your plan.")
+    
     region = resume.get("region", "US")
     
     system_prompt = f"""
@@ -846,6 +851,8 @@ Provide a professional suggestion to improve this content. If metrics are needed
                 if chunk.choices[0].delta.content:
                     yield f"data: {json.dumps({'content': chunk.choices[0].delta.content})}\n\n"
                 if chunk.choices[0].finish_reason == "stop":
+                    # Track usage when stream completes
+                    await track_ai_usage(current_user["id"], "ai_suggestion")
                     yield f"data: {json.dumps({'done': True})}\n\n"
                     break
         except Exception as e:
@@ -1390,6 +1397,11 @@ class JobAdRequest(BaseModel):
 @limiter.limit("15/hour")  # Limit job ad generation
 async def generate_from_job_ad(request: Request, job_req: JobAdRequest, current_user: dict = Depends(get_current_user)):
     """Generate tailored resume and cover letter from job description"""
+    # Check AI limits
+    tier = current_user.get("subscription_tier", "free")
+    if not await check_ai_limits(current_user["id"], tier):
+        raise HTTPException(status_code=403, detail="AI usage limit reached. Please upgrade your plan.")
+    
     # Get user's resume
     resume = await db.resumes.find_one({"user_id": current_user["id"], "_id": ObjectId(job_req.resume_id)}, {"_id": 0})
     if not resume:
@@ -1449,6 +1461,8 @@ Format as JSON:
                     accumulated += content
                     yield f"data: {json.dumps({'content': content})}\\n\\n"
                 if chunk.choices[0].finish_reason == "stop":
+                    # Track usage when stream completes
+                    await track_ai_usage(current_user["id"], "job_ad_generation")
                     yield f"data: {json.dumps({'done': True, 'full_content': accumulated})}\\n\\n"
                     break
         except Exception as e:
