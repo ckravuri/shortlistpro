@@ -22,6 +22,7 @@ import Templates from "./pages/Templates";
 import BulletPointWriter from "./pages/BulletPointWriter";
 import SummaryGenerator from "./pages/SummaryGenerator";
 import SelectionCriteria from "./pages/SelectionCriteria";
+import InterviewPrep from "./pages/InterviewPrep";
 import CookieConsent from "./components/CookieConsent";
 
 const GOOGLE_CLIENT_ID = "613554214488-v5qr5lt1efch2dg6hvm1ppik5485pv09.apps.googleusercontent.com";
@@ -132,6 +133,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <SelectionCriteria />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/interview-prep"
+              element={
+                <ProtectedRoute>
+                  <InterviewPrep />
                 </ProtectedRoute>
               }
             />

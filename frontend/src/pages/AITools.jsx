@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { FileText, Sparkle, ListBullets, TextAlignLeft, UserCircle, Briefcase, MagnifyingGlass, Target } from '@phosphor-icons/react';
+import { FileText, Sparkle, ListBullets, TextAlignLeft, UserCircle, Briefcase, MagnifyingGlass, Target, Lightbulb } from '@phosphor-icons/react';
 
 const tools = [
   {
@@ -30,6 +30,14 @@ const tools = [
     icon: Sparkle,
     path: '/summary-generator',
     color: '#F59E0B'
+  },
+  {
+    name: 'Interview Preparation',
+    description: 'Get tailored interview questions based on job description',
+    icon: Lightbulb,
+    path: '/interview-prep',
+    color: '#50C878',
+    badge: 'Pro+'
   },
   {
     name: 'ATS Score Checker',
@@ -109,9 +117,19 @@ export const AITools = () => {
                     <Icon size={32} weight="bold" style={{ color: tool.color }} />
                   </div>
                   <div className="flex-1">
-                    <h3 className="heading-section mb-2 group-hover:opacity-70 transition-opacity">
-                      {tool.name}
-                    </h3>
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="heading-section group-hover:opacity-70 transition-opacity">
+                        {tool.name}
+                      </h3>
+                      {tool.badge && (
+                        <span 
+                          className="text-xs font-semibold px-2 py-0.5 rounded-sm"
+                          style={{ backgroundColor: '#50C878', color: '#001F3F' }}
+                        >
+                          {tool.badge}
+                        </span>
+                      )}
+                    </div>
                     <p className="body-text-sm" style={{ color: '#708090' }}>
                       {tool.description}
                     </p>

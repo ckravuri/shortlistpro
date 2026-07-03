@@ -170,6 +170,10 @@ class AISuggestionRequest(BaseModel):
     field: str
     current_text: str = ""
 
+class InterviewPrepRequest(BaseModel):
+    resume_id: str
+    job_description: str
+
 # ============ STARTUP EVENTS ============
 @app.on_event("startup")
 async def startup_event():
@@ -1741,6 +1745,131 @@ The response should read as a cohesive narrative without explicit STAR labels, b
     except Exception as e:
         logger.error(f"Selection criteria generation error: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to generate selection criteria response")
+
+# ============ INTERVIEW PREPARATION (PRO+ ONLY) ============
+@api_router.post("/interview-prep/generate")
+@limiter.limit("10/hour")
+async def generate_interview_questions(
+    request: Request,
+    prep_req: InterviewPrepRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Generate tailored interview questions based on job description and resume (Pro+ only)"""
+    
+    # Check subscription tier - Pro+ only
+    tier = current_user.get("subscription_tier", "free").lower()
+    if tier != "pro+":
+        raise HTTPException(
+            status_code=403, 
+            detail="Interview Preparation is exclusive to Pro+ subscribers. Upgrade to unlock this feature!"
+        )
+    
+    try:
+        # Fetch the resume
+        resume = await db.resumes.find_one(
+            {"id": prep_req.resume_id, "user_id": current_user["id"]},
+            {"_id": 0}
+        )
+        
+        if not resume:
+            raise HTTPException(status_code=404, detail="Resume not found")
+        
+        # Extract relevant resume data
+        personal_info = resume.get("personal_info", {})
+        work_experience = resume.get("work_experience", [])
+        education = resume.get("education", [])
+        skills = resume.get("skills", [])
+        
+        # Build resume summary for context
+        resume_summary = f"""
+NAME: {personal_info.get('full_name', 'Not provided')}
+SUMMARY: {personal_info.get('summary', 'Not provided')}
+
+WORK EXPERIENCE:
+"""
+        for exp in work_experience[:3]:  # Top 3 most recent
+            resume_summary += f"- {exp.get('position', '')} at {exp.get('company', '')}\n"
+            for achievement in exp.get('achievements', [])[:2]:  # Top 2 achievements
+                resume_summary += f"  • {achievement}\n"
+        
+        resume_summary += "\nEDUCATION:\n"
+        for edu in education:
+            resume_summary += f"- {edu.get('degree', '')} in {edu.get('field', '')} from {edu.get('institution', '')}\n"
+        
+        resume_summary += f"\nSKILLS: {', '.join(skills[:10])}\n"
+        
+        # Create AI prompt
+        system_prompt = """You are an expert career coach and interview preparation specialist. 
+Your task is to generate tailored interview questions based on the candidate's resume and the specific job description.
+
+Generate comprehensive interview questions in the following categories:
+1. **Technical Questions** (5-7 questions) - Role-specific technical skills and knowledge
+2. **Behavioral Questions** (5-7 questions) - Past experiences, problem-solving, teamwork
+3. **Situational Questions** (3-5 questions) - Hypothetical scenarios related to the role
+
+For each question, ensure:
+- It's directly relevant to either the job description or the candidate's background
+- It's specific and actionable (not generic)
+- It helps the candidate prepare for real interview scenarios
+
+Format your response as JSON with this exact structure:
+{
+  "technical": ["question 1", "question 2", ...],
+  "behavioral": ["question 1", "question 2", ...],
+  "situational": ["question 1", "question 2", ...]
+}
+"""
+        
+        user_prompt = f"""JOB DESCRIPTION:
+{prep_req.job_description}
+
+CANDIDATE'S RESUME SUMMARY:
+{resume_summary}
+
+Generate tailored interview questions for this candidate applying to this specific role."""
+        
+        # Call LLM
+        chat = LlmChat(
+            api_key=os.environ["EMERGENT_LLM_KEY"],
+            session_id=f"interview_prep_{current_user['id']}_{prep_req.resume_id}",
+            system_message=system_prompt
+        )
+        chat.with_model("openai", "gpt-5.2")
+        
+        message = UserMessage(text=user_prompt)
+        
+        accumulated = ""
+        async for event in chat.stream_message(message):
+            if isinstance(event, TextDelta):
+                accumulated += event.content
+            elif isinstance(event, StreamDone):
+                break
+        
+        # Parse the JSON response
+        try:
+            questions_data = json.loads(accumulated)
+        except json.JSONDecodeError:
+            # Fallback: try to extract JSON from response
+            import re
+            json_match = re.search(r'\{.*\}', accumulated, re.DOTALL)
+            if json_match:
+                questions_data = json.loads(json_match.group(0))
+            else:
+                raise HTTPException(status_code=500, detail="Failed to parse AI response")
+        
+        # Track AI usage
+        await track_ai_usage(current_user["id"], "interview_prep_generation")
+        
+        return {
+            "questions": questions_data,
+            "job_title": prep_req.job_description.split('\n')[0][:100]  # First line as title
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Interview prep generation error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to generate interview questions")
 
 # ============ ADMIN DASHBOARD ============
 @api_router.get("/admin/stats")

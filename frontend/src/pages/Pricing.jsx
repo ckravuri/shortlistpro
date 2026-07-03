@@ -92,6 +92,7 @@ export const Pricing = () => {
       features: [
         { text: 'Everything in PRO', included: true },
         { text: 'AI Headshot Generator', included: true },
+        { text: 'Interview Preparation', included: true },
         { text: 'PDF to Word conversion', included: true },
         { text: 'MS Word export', included: true },
         { text: 'Priority AI processing', included: true },
