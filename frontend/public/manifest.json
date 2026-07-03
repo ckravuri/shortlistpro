@@ -1,26 +1,37 @@
 {
   "short_name": "ShortlistPro",
-  "name": "ShortlistPro.cv - Professional Resume Builder",
-  "description": "AI-powered resume builder with ATS optimization",
+  "name": "ShortlistPro.cv - Professional AI Resume Builder",
+  "description": "Build ATS-Ready Resumes That Get You Hired. AI-powered resume builder with real-time ATS scoring, country-aware guidance, and professional templates.",
   "icons": [
     {
       "src": "favicon.ico",
       "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
+      "type": "image/x-icon",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "favicon.png",
+      "type": "image/png",
+      "sizes": "32x32",
+      "purpose": "any"
     },
     {
       "src": "logo192.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any maskable"
     },
     {
       "src": "logo512.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
   ],
   "start_url": ".",
   "display": "standalone",
   "theme_color": "#001F3F",
-  "background_color": "#F8FAFC"
+  "background_color": "#F8FAFC",
+  "orientation": "portrait-primary",
+  "categories": ["productivity", "business", "utilities"]
 }
