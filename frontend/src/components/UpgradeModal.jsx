@@ -2,7 +2,7 @@ import React from 'react';
 import { X, Crown, Check, Star } from '@phosphor-icons/react';
 import { useNavigate } from 'react-router-dom';
 
-export const UpgradeModal = ({ isOpen, onClose, message, currentCount, limit }) => {
+export const UpgradeModal = ({ isOpen, onClose, message, currentCount, limit, feature, requiredTier }) => {
   const navigate = useNavigate();
 
   if (!isOpen) return null;
@@ -11,6 +11,10 @@ export const UpgradeModal = ({ isOpen, onClose, message, currentCount, limit }) 
     navigate('/pricing');
     onClose();
   };
+
+  // Determine if this is a feature-gating modal or quota-limit modal
+  const isFeatureGated = feature && requiredTier;
+  const displayTier = requiredTier?.toUpperCase() || 'PRO';
 
   return (
     <div 
@@ -48,38 +52,55 @@ export const UpgradeModal = ({ isOpen, onClose, message, currentCount, limit }) 
             </div>
           </div>
           <h2 className="text-3xl font-bold mb-2" style={{ fontFamily: 'Outfit', color: '#FFFFFF' }}>
-            Upgrade to Pro
+            {isFeatureGated ? `Upgrade to ${displayTier}` : 'Upgrade to Pro'}
           </h2>
           <p className="text-lg" style={{ color: 'rgba(255, 255, 255, 0.9)' }}>
-            Unlock unlimited resumes and premium features
+            {isFeatureGated && message ? message : 'Unlock unlimited resumes and premium features'}
           </p>
         </div>
 
         {/* Content */}
         <div className="px-8 py-8">
-          {/* Usage Status */}
-          <div 
-            className="mb-6 p-4 rounded-lg border"
-            style={{ backgroundColor: '#FEF2F2', borderColor: '#FCA5A5' }}
-          >
-            <p className="text-center font-semibold mb-2" style={{ color: '#991B1B' }}>
-              You&apos;ve reached your limit!
-            </p>
-            <div className="flex items-center justify-center gap-2">
-              <div className="flex-1 h-3 rounded-full overflow-hidden" style={{ backgroundColor: '#FEE2E2' }}>
-                <div 
-                  className="h-full rounded-full transition-all"
-                  style={{ 
-                    backgroundColor: '#EF4444',
-                    width: `${(currentCount / limit) * 100}%`
-                  }}
-                />
+          {/* Usage Status - Only show for quota limits */}
+          {!isFeatureGated && currentCount !== undefined && limit !== undefined && (
+            <div 
+              className="mb-6 p-4 rounded-lg border"
+              style={{ backgroundColor: '#FEF2F2', borderColor: '#FCA5A5' }}
+            >
+              <p className="text-center font-semibold mb-2" style={{ color: '#991B1B' }}>
+                You&apos;ve reached your limit!
+              </p>
+              <div className="flex items-center justify-center gap-2">
+                <div className="flex-1 h-3 rounded-full overflow-hidden" style={{ backgroundColor: '#FEE2E2' }}>
+                  <div 
+                    className="h-full rounded-full transition-all"
+                    style={{ 
+                      backgroundColor: '#EF4444',
+                      width: `${(currentCount / limit) * 100}%`
+                    }}
+                  />
+                </div>
+                <span className="font-bold" style={{ color: '#991B1B' }}>
+                  {currentCount}/{limit}
+                </span>
               </div>
-              <span className="font-bold" style={{ color: '#991B1B' }}>
-                {currentCount}/{limit}
-              </span>
             </div>
-          </div>
+          )}
+
+          {/* Feature-specific message */}
+          {isFeatureGated && (
+            <div 
+              className="mb-6 p-4 rounded-lg border text-center"
+              style={{ backgroundColor: '#FFFBEB', borderColor: '#FCD34D' }}
+            >
+              <p className="font-semibold mb-1" style={{ color: '#92400E' }}>
+                {feature} is a {displayTier} Feature
+              </p>
+              <p className="text-sm" style={{ color: '#78350F' }}>
+                Upgrade to unlock this premium capability
+              </p>
+            </div>
+          )}
 
           {/* Benefits */}
           <div className="space-y-3 mb-8">

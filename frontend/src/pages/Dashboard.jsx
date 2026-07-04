@@ -605,9 +605,11 @@ export const Dashboard = () => {
       <UpgradeModal 
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
-        message="You've reached your Free plan limit"
+        message={upgradeInfo.message || "You've reached your Free plan limit"}
         currentCount={upgradeInfo.currentCount}
         limit={upgradeInfo.limit}
+        feature={upgradeInfo.feature}
+        requiredTier={upgradeInfo.requiredTier}
       />
 
       {/* Delete Account Modal */}
