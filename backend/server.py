@@ -177,6 +177,11 @@ class InterviewPrepRequest(BaseModel):
     resume_id: str
     job_description: str
 
+class InterviewAnswerRequest(BaseModel):
+    question: str
+    job_description: str
+    resume_context: str  # Brief resume summary
+
 # ============ STARTUP EVENTS ============
 @app.on_event("startup")
 async def startup_event():
@@ -1920,6 +1925,75 @@ Generate tailored interview questions for this candidate applying to this specif
     except Exception as e:
         logger.error(f"Interview prep generation error: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to generate interview questions")
+
+@api_router.post("/interview-prep/generate-answer")
+@limiter.limit("20/hour")
+async def generate_interview_answer(
+    request: Request,
+    answer_req: InterviewAnswerRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Generate sample answer for a specific interview question (Pro+ only)"""
+    
+    # Check subscription tier - Pro+ only
+    tier = current_user.get("subscription_tier", "free").lower()
+    if tier != "pro+":
+        raise HTTPException(
+            status_code=403, 
+            detail="Interview answer generation is exclusive to Pro+ subscribers."
+        )
+    
+    # Check AI limits
+    if not await check_ai_limits(current_user["id"], tier):
+        raise HTTPException(status_code=403, detail="AI usage limit reached. Please upgrade your plan.")
+    
+    try:
+        system_prompt = """You are an expert interview coach helping candidates prepare strong answers.
+
+Generate a sample answer to the interview question using the STAR method (Situation, Task, Action, Result).
+
+The answer should:
+- Be specific and concrete (use the candidate's background provided)
+- Follow STAR structure clearly
+- Be 150-200 words
+- Sound natural and conversational
+- Highlight relevant skills and achievements
+
+Format as plain text, starting with the answer directly."""
+
+        user_prompt = f"""INTERVIEW QUESTION:
+{answer_req.question}
+
+CANDIDATE'S BACKGROUND:
+{answer_req.resume_context}
+
+JOB CONTEXT:
+{answer_req.job_description[:500]}
+
+Generate a strong sample answer using the STAR method."""
+
+        response = await openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=0.7,
+            max_tokens=400
+        )
+        
+        answer = response.choices[0].message.content.strip()
+        
+        # Track AI usage
+        await track_ai_usage(current_user["id"], "interview_answer_generation")
+        
+        return {"answer": answer}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Interview answer generation error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to generate answer")
 
 # ============ ADMIN DASHBOARD ============
 @api_router.get("/admin/stats")

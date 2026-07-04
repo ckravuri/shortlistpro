@@ -13,6 +13,8 @@ export const InterviewPrep = () => {
   const [jobDescription, setJobDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [questions, setQuestions] = useState(null);
+  const [answers, setAnswers] = useState({}); // Store answers by question index
+  const [loadingAnswers, setLoadingAnswers] = useState({}); // Track loading state per question
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [error, setError] = useState('');
 
@@ -93,10 +95,58 @@ export const InterviewPrep = () => {
 
       const data = await res.json();
       setQuestions(data.questions);
+      setAnswers({}); // Reset answers when new questions are generated
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const generateAnswer = async (question, category, index) => {
+    const answerKey = `${category}-${index}`;
+    
+    // Set loading state for this specific question
+    setLoadingAnswers(prev => ({ ...prev, [answerKey]: true }));
+    
+    try {
+      // Get resume context
+      const resume = resumes.find(r => r.id === selectedResumeId);
+      const resumeContext = resume ? `
+Professional Summary: ${resume.personal_info?.summary || 'Not provided'}
+Key Skills: ${resume.skills?.slice(0, 5).join(', ') || 'Not provided'}
+Recent Experience: ${resume.work_experience?.[0]?.position || ''} at ${resume.work_experience?.[0]?.company || ''}
+      `.trim() : 'Resume information not available';
+
+      const res = await fetch(`${API}/api/interview-prep/generate-answer`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          question,
+          job_description: jobDescription,
+          resume_context: resumeContext
+        })
+      });
+
+      if (res.status === 403) {
+        setShowUpgradeModal(true);
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error('Failed to generate answer');
+      }
+
+      const data = await res.json();
+      setAnswers(prev => ({ ...prev, [answerKey]: data.answer }));
+    } catch (err) {
+      console.error('Failed to generate answer:', err);
+      setAnswers(prev => ({ ...prev, [answerKey]: 'Failed to generate answer. Please try again.' }));
+    } finally {
+      setLoadingAnswers(prev => ({ ...prev, [answerKey]: false }));
     }
   };
 
@@ -119,17 +169,73 @@ export const InterviewPrep = () => {
           <span>{categoryIcons[category]}</span>
           {categoryTitles[category]}
         </h3>
-        <ol className="space-y-3">
-          {questionsList.map((question, idx) => (
-            <li key={idx} className="flex gap-3">
-              <span className="font-semibold" style={{ color: '#50C878', minWidth: '1.5rem' }}>
-                {idx + 1}.
-              </span>
-              <p className="body-text" style={{ color: '#001F3F' }}>
-                {question}
-              </p>
-            </li>
-          ))}
+        <ol className="space-y-4">
+          {questionsList.map((question, idx) => {
+            const answerKey = `${category}-${idx}`;
+            const hasAnswer = answers[answerKey];
+            const isLoadingAnswer = loadingAnswers[answerKey];
+
+            return (
+              <li key={idx} className="border-b pb-4 last:border-b-0" style={{ borderColor: '#E2E8F0' }}>
+                <div className="flex gap-3 mb-2">
+                  <span className="font-semibold" style={{ color: '#50C878', minWidth: '1.5rem' }}>
+                    {idx + 1}.
+                  </span>
+                  <p className="body-text flex-1" style={{ color: '#001F3F' }}>
+                    {question}
+                  </p>
+                </div>
+                
+                {/* Generate Answer Button */}
+                <div className="ml-8">
+                  {!hasAnswer && (
+                    <button
+                      onClick={() => generateAnswer(question, category, idx)}
+                      disabled={isLoadingAnswer}
+                      className="text-sm font-medium px-3 py-1.5 rounded-sm flex items-center gap-2 transition-all"
+                      style={{ 
+                        backgroundColor: isLoadingAnswer ? '#E2E8F0' : '#F0FDF4',
+                        color: isLoadingAnswer ? '#64748B' : '#166534',
+                        border: `1px solid ${isLoadingAnswer ? '#CBD5E1' : '#BBF7D0'}`,
+                        cursor: isLoadingAnswer ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      {isLoadingAnswer ? (
+                        <>
+                          <div className="animate-spin rounded-full h-3 w-3 border-b-2" style={{ borderColor: '#64748B' }}></div>
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkle size={14} weight="fill" style={{ color: '#16A34A' }} />
+                          Generate Sample Answer
+                        </>
+                      )}
+                    </button>
+                  )}
+                  
+                  {/* Display Answer */}
+                  {hasAnswer && (
+                    <div 
+                      className="mt-3 p-4 rounded-lg"
+                      style={{ backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0' }}
+                    >
+                      <p className="text-xs font-semibold mb-2 flex items-center gap-1" style={{ color: '#166534' }}>
+                        <Sparkle size={12} weight="fill" />
+                        Sample Answer (STAR Method)
+                      </p>
+                      <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: '#14532D' }}>
+                        {hasAnswer}
+                      </p>
+                      <p className="text-xs mt-3 italic" style={{ color: '#15803D' }}>
+                        💡 Tip: Customize this answer with your own specific examples and experiences
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </li>
+            );
+          })}
         </ol>
       </div>
     );

@@ -224,10 +224,67 @@ export const TermsOfService = () => {
             </div>
           </section>
 
+          {/* AI-Generated Content Disclaimer */}
+          <section className="bg-white rounded-lg p-8 border" style={{ borderColor: '#FCD34D', backgroundColor: '#FFFBEB' }}>
+            <h2 className="text-2xl font-semibold mb-4" style={{ fontFamily: 'Outfit', color: '#001F3F' }}>
+              9. AI-Generated Content Disclaimer
+            </h2>
+            <div className="space-y-4 body-text" style={{ color: '#475569' }}>
+              <div>
+                <p className="font-semibold mb-2" style={{ color: '#92400E' }}>9.1 Nature of AI Services</p>
+                <p>
+                  ShortlistPro.cv uses artificial intelligence (AI) to generate resume content, cover letters, 
+                  interview questions, interview answers, bullet points, professional summaries, and other 
+                  career-related materials (&quot;AI-Generated Content&quot;). This AI-Generated Content is provided 
+                  as <strong>suggestions and guidance only</strong>.
+                </p>
+              </div>
+
+              <div>
+                <p className="font-semibold mb-2" style={{ color: '#92400E' }}>9.2 No Guarantee of Accuracy</p>
+                <p className="mb-2">While we strive to provide high-quality AI-Generated Content:</p>
+                <ul className="list-disc list-inside space-y-1 ml-4">
+                  <li>We do <strong>NOT</strong> guarantee the accuracy, completeness, or suitability of any AI-Generated Content</li>
+                  <li>AI-Generated Content may contain errors, inaccuracies, or inappropriate suggestions</li>
+                  <li>AI-generated interview answers are sample responses for preparation purposes only</li>
+                  <li>You are solely responsible for reviewing, editing, and verifying all AI-Generated Content before use</li>
+                </ul>
+              </div>
+
+              <div>
+                <p className="font-semibold mb-2" style={{ color: '#92400E' }}>9.3 User Responsibility</p>
+                <p className="mb-2">You acknowledge and agree that:</p>
+                <ul className="list-disc list-inside space-y-1 ml-4">
+                  <li>All final content decisions rest with you</li>
+                  <li>You must review and customize all AI-Generated Content for your specific situation</li>
+                  <li>ShortlistPro.cv is not liable for any consequences arising from your use of AI-Generated Content</li>
+                  <li>Interview questions and answers are for preparation purposes only and may not reflect actual interview content</li>
+                  <li>You should adapt sample answers to reflect your own genuine experiences</li>
+                </ul>
+              </div>
+
+              <div>
+                <p className="font-semibold mb-2" style={{ color: '#92400E' }}>9.4 Not Professional Advice</p>
+                <p>
+                  AI-Generated Content does not constitute professional career counseling, legal advice, or 
+                  guaranteed job placement assistance. For specific career guidance, consult with a qualified 
+                  career counselor or professional.
+                </p>
+              </div>
+
+              <div className="p-3 rounded-lg border" style={{ backgroundColor: '#FEF2F2', borderColor: '#FCA5A5' }}>
+                <p className="text-sm font-semibold" style={{ color: '#991B1B' }}>
+                  ⚠️ Important: Always personalize AI-generated content with your own experiences, verify accuracy, 
+                  and ensure it truthfully represents your qualifications.
+                </p>
+              </div>
+            </div>
+          </section>
+
           {/* Termination */}
           <section className="bg-white rounded-lg p-8 border" style={{ borderColor: '#E2E8F0' }}>
             <h2 className="text-2xl font-semibold mb-4" style={{ fontFamily: 'Outfit', color: '#001F3F' }}>
-              9. Termination
+              10. Termination
             </h2>
             <div className="space-y-3 body-text" style={{ color: '#475569' }}>
               <p>
@@ -247,7 +304,7 @@ export const TermsOfService = () => {
           {/* Dispute Resolution */}
           <section className="bg-white rounded-lg p-8 border" style={{ borderColor: '#E2E8F0' }}>
             <h2 className="text-2xl font-semibold mb-4" style={{ fontFamily: 'Outfit', color: '#001F3F' }}>
-              10. Dispute Resolution and Governing Law
+              11. Dispute Resolution and Governing Law
             </h2>
             <div className="space-y-3 body-text" style={{ color: '#475569' }}>
               <p>
@@ -268,7 +325,7 @@ export const TermsOfService = () => {
           {/* Changes to Terms */}
           <section className="bg-white rounded-lg p-8 border" style={{ borderColor: '#E2E8F0' }}>
             <h2 className="text-2xl font-semibold mb-4" style={{ fontFamily: 'Outfit', color: '#001F3F' }}>
-              11. Changes to These Terms
+              12. Changes to These Terms
             </h2>
             <div className="space-y-3 body-text" style={{ color: '#475569' }}>
               <p>
@@ -288,7 +345,7 @@ export const TermsOfService = () => {
           {/* Contact */}
           <section className="bg-white rounded-lg p-8 border" style={{ borderColor: '#E2E8F0' }}>
             <h2 className="text-2xl font-semibold mb-4" style={{ fontFamily: 'Outfit', color: '#001F3F' }}>
-              12. Contact Information
+              13. Contact Information
             </h2>
             <div className="space-y-3 body-text" style={{ color: '#475569' }}>
               <p>
