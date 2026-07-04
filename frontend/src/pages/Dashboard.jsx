@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
-import { FileText, Plus, Trash, PencilSimple, Sparkle, Camera, Target, Crown, CreditCard, ListBullets, TextAlignLeft, Stack, Warning } from '@phosphor-icons/react';
+import { FileText, Plus, Trash, PencilSimple, Sparkle, Camera, Target, Crown, CreditCard, ListBullets, TextAlignLeft, Stack, Warning, Lightbulb } from '@phosphor-icons/react';
 import { ResumeUpload } from '../components/ResumeUpload';
 import AdSenseAd from '../components/AdSenseAd';
 import Navbar from '../components/Navbar';
@@ -288,6 +288,23 @@ export const Dashboard = () => {
               Summary Generator
             </h3>
             <p className="body-text-sm">Professional summaries</p>
+          </button>
+
+          <button
+            onClick={() => navigate('/interview-prep')}
+            className="card text-left hover:shadow-lg transition-shadow relative"
+            data-testid="interview-prep-link"
+          >
+            {user?.subscription_tier?.toLowerCase() !== 'pro+' && (
+              <div className="absolute top-2 right-2 px-2 py-0.5 rounded-sm text-xs font-semibold" style={{ backgroundColor: '#50C878', color: '#001F3F' }}>
+                Pro+
+              </div>
+            )}
+            <Lightbulb size={28} weight="bold" style={{ color: '#50C878', marginBottom: '0.5rem' }} />
+            <h3 className="text-base font-medium mb-1" style={{ fontFamily: 'Outfit', color: '#001F3F' }}>
+              Interview Prep
+            </h3>
+            <p className="body-text-sm">Practice interview questions</p>
           </button>
 
           <button
