@@ -255,10 +255,30 @@ export const Dashboard = () => {
           </button>
 
           <button
-            onClick={() => navigate('/headshot-generator')}
-            className="card text-left hover:shadow-lg transition-shadow"
+            onClick={() => {
+              // Check if user is Pro or Pro+
+              const tier = user?.subscription_tier?.toLowerCase();
+              if (tier === 'pro' || tier === 'pro+') {
+                navigate('/headshot-generator');
+              } else {
+                // Show upgrade modal for Free users
+                setShowUpgradeModal(true);
+                setUpgradeInfo({
+                  feature: 'AI Headshot Generator',
+                  requiredTier: 'pro',
+                  message: 'Generate professional headshots from your photos'
+                });
+              }
+            }}
+            className="card text-left hover:shadow-lg transition-shadow relative"
             data-testid="headshot-generator-link"
           >
+            {/* Show Pro badge for Free users */}
+            {user?.subscription_tier?.toLowerCase() === 'free' && (
+              <div className="absolute top-2 right-2 px-2 py-0.5 rounded-sm text-xs font-semibold" style={{ backgroundColor: '#F59E0B', color: '#FFFFFF' }}>
+                Pro
+              </div>
+            )}
             <Camera size={28} weight="bold" style={{ color: '#50C878', marginBottom: '0.5rem' }} />
             <h3 className="text-base font-medium mb-1" style={{ fontFamily: 'Outfit', color: '#001F3F' }}>
               AI Headshot
@@ -291,10 +311,24 @@ export const Dashboard = () => {
           </button>
 
           <button
-            onClick={() => navigate('/interview-prep')}
+            onClick={() => {
+              // Check if user is Pro+
+              if (user?.subscription_tier?.toLowerCase() === 'pro+') {
+                navigate('/interview-prep');
+              } else {
+                // Show upgrade modal for Free/Pro users
+                setShowUpgradeModal(true);
+                setUpgradeInfo({
+                  feature: 'Interview Preparation',
+                  requiredTier: 'pro+',
+                  message: 'Get tailored interview questions based on your resume and job description'
+                });
+              }
+            }}
             className="card text-left hover:shadow-lg transition-shadow relative"
             data-testid="interview-prep-link"
           >
+            {/* Always show Pro+ badge for non-Pro+ users */}
             {user?.subscription_tier?.toLowerCase() !== 'pro+' && (
               <div className="absolute top-2 right-2 px-2 py-0.5 rounded-sm text-xs font-semibold" style={{ backgroundColor: '#50C878', color: '#001F3F' }}>
                 Pro+
