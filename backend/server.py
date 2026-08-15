@@ -2256,11 +2256,8 @@ async def get_subscription_status(current_user: dict = Depends(get_current_user)
 app.include_router(api_router)
 
 # CORS Configuration
-cors_origins = os.environ.get('CORS_ORIGINS', '*')
-if cors_origins == '*':
-    allowed_origins = ["*"]
-else:
-    allowed_origins = [origin.strip() for origin in cors_origins.split(',')]
+cors_origins = os.environ.get('CORS_ORIGINS', 'https://shortlistpro.cv')
+allowed_origins = [origin.strip() for origin in cors_origins.split(',') if origin.strip()]
 
 app.add_middleware(
     CORSMiddleware,
