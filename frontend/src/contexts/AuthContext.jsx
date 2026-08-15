@@ -41,6 +41,9 @@ export const AuthProvider = ({ children }) => {
       });
       setUser(data);
     } catch (error) {
+      if (error.response?.status !== 401) {
+        console.error('Unable to verify the current session:', error);
+      }
       setUser(false);
     } finally {
       setLoading(false);
