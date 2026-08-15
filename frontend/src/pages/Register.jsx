@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { GoogleLogin } from '@react-oauth/google';
@@ -27,6 +27,17 @@ export const Register = () => {
   const [loading, setLoading] = useState(false);
   const { register, setUser } = useAuth();
   const navigate = useNavigate();
+  const [googleButtonWidth, setGoogleButtonWidth] = useState(320);
+
+  useEffect(() => {
+    const updateGoogleButtonWidth = () => {
+      setGoogleButtonWidth(Math.min(400, Math.max(200, Math.floor(window.innerWidth - 48))));
+    };
+
+    updateGoogleButtonWidth();
+    window.addEventListener('resize', updateGoogleButtonWidth);
+    return () => window.removeEventListener('resize', updateGoogleButtonWidth);
+  }, []);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -178,7 +189,7 @@ export const Register = () => {
               size="large"
               text="continue_with"
               shape="rectangular"
-              width="100%"
+              width={googleButtonWidth}
             />
           </div>
 
